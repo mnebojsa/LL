@@ -34,13 +34,14 @@ use work.p_uart_interface.all;
 
 entity uart_rx_tb is
       generic(
-        G_DATA_WIDTH  : integer   := 8;
-        G_RST_LEVEVEL : RST_LEVEL := HL;
-		  G_LSB_MSB     : LSB_MSB   := LSB;
-        G_USE_BREAK   : boolean   := true;
-        G_USE_OVERRUN : boolean   := false;
-        G_USE_FRAMEIN : boolean   := false;
-        G_USE_PARITY  : boolean   := false
+        G_DATA_WIDTH       : integer   := 8;
+        G_RST_LEVEVEL      : RST_LEVEL := HL;
+        G_LSB_MSB          : LSB_MSB   := LSB;
+        G_USE_BREAK        : boolean   := true;
+        G_USE_OVERRUN      : boolean   := false;
+        G_USE_FRAMEIN      : boolean   := false;
+        G_USE_PARITY_ODD   : boolean   := false;
+        G_USE_PARITY_EVEN  : boolean   := false
       );
 end;
 
@@ -48,13 +49,14 @@ architecture bench of uart_rx_tb is
 
   component uart_rx
       generic(
-        G_DATA_WIDTH  : integer   := 8;
-        G_RST_LEVEVEL : RST_LEVEL := HL;
-		  G_LSB_MSB     : LSB_MSB   := LSB;
-        G_USE_BREAK   : boolean   := true;
-        G_USE_OVERRUN : boolean   := false;
-        G_USE_FRAMEIN : boolean   := false;
-        G_USE_PARITY  : boolean   := false
+        G_DATA_WIDTH       : integer   := 8;
+        G_RST_LEVEVEL      : RST_LEVEL := HL;
+        G_LSB_MSB          : LSB_MSB   := LSB;
+        G_USE_BREAK        : boolean   := true;
+        G_USE_OVERRUN      : boolean   := false;
+        G_USE_FRAMEIN      : boolean   := false;
+        G_USE_PARITY_ODD   : boolean   := false;
+        G_USE_PARITY_EVEN  : boolean   := false
       );
       port   (
         i_clk           : in  std_logic;                      -- Input CLOCK
@@ -89,13 +91,14 @@ architecture bench of uart_rx_tb is
 begin
 
   -- Insert values for generic parameters !!
-  uut: uart_rx generic map ( G_DATA_WIDTH   => 8,
-                             G_RST_LEVEVEL  => G_RST_LEVEVEL,
-		                       G_LSB_MSB      => G_LSB_MSB,
-                             G_USE_BREAK    => G_USE_BREAK,
-                             G_USE_OVERRUN  => G_USE_OVERRUN,
-                             G_USE_FRAMEIN  => G_USE_FRAMEIN,
-                             G_USE_PARITY   => G_USE_PARITY)
+  uut: uart_rx generic map ( G_DATA_WIDTH     => 8,
+                             G_RST_LEVEVEL    => G_RST_LEVEVEL,
+                             G_LSB_MSB        => G_LSB_MSB,
+                             G_USE_BREAK      => G_USE_BREAK,
+                             G_USE_OVERRUN    => G_USE_OVERRUN,
+                             G_USE_FRAMEIN    => G_USE_FRAMEIN,
+                             G_USE_PARITY_ODD => G_USE_PARITY_ODD,
+                             G_USE_PARITY_EVEN=> G_USE_PARITY_EVEN)
                   port map ( i_clk          => i_clk,
                              i_rst          => i_rst,
                              i_sample       => i_sample,
@@ -148,9 +151,9 @@ begin
 
   sample: process
   begin
-  wait for clock_period/2;-- * 5;
+  wait for clock_period;-- * 5;
      i_sample <= '1';
-  wait for clock_period/2;-- * 3;
+  wait for clock_period;-- * 3;
      i_sample <= '0';
   end process;
 

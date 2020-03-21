@@ -27,17 +27,18 @@ type LSB_MSB   is (LSB , MSB);
 
 --  subtype std_logic_vector2 is std_logic_vector(1 downto 0);
 --  function to_std_logic_vector(mii_speed : TYPE_MII_SPEED) return std_logic_vector2;
---  function to_TYPE_MII_SPEED(s_in           : std_logic_vector2) return TYPE_MII_SPEED;
+  function f_parity(s_in           : std_logic_vector) return std_logic;
 
 component uart_rx is
     generic(
-        G_DATA_WIDTH  : integer   := 8;
-        G_RST_LEVEVEL : RST_LEVEL := HL;
-		G_LSB_MSB     : LSB_MSB   := LSB;
-        G_USE_BREAK   : boolean   := true;
-        G_USE_OVERRUN : boolean   := false;
-        G_USE_FRAMEIN : boolean   := false;
-        G_USE_PARITY  : boolean   := false
+        G_DATA_WIDTH       : integer   := 8;
+        G_RST_LEVEVEL      : RST_LEVEL := HL;
+		G_LSB_MSB          : LSB_MSB   := LSB;
+        G_USE_BREAK        : boolean   := true;
+        G_USE_OVERRUN      : boolean   := false;
+        G_USE_FRAMEIN      : boolean   := false;
+        G_USE_PARITY_ODD   : boolean   := false;
+        G_USE_PARITY_EVEN  : boolean   := false
     );
     port   (
         i_clk           : in  std_logic;                      -- Input CLOCK
@@ -61,17 +62,17 @@ end package;
 
 package body p_uart_interface is
 
---  -- TYPE_MII_SPEED -> std_logic_vector
---  function to_std_logic_vector(mii_speed : TYPE_MII_SPEED) return std_logic_vector2 is
---    variable ret : std_logic_vector2;
---  begin
---    case mii_speed is
---      when SP_10   => ret := "00";
---      when SP_100  => ret := "01";
---      when SP_1000 => ret := "10";
---    end case;
---    return ret;
---  end function;
+    function f_parity(s_in : std_logic_vector) return std_logic is
+        variable ret : std_logic;
+    begin
+	    ret := '0';
+
+        for i in 0 to s_in'length -1 loop
+		    ret := ret xor s_in(i);
+		end loop;
+
+        return ret;
+    end function;
 --  -- std_logic_vector -> TYPE_MII_SPEED
 --  function to_TYPE_MII_SPEED(s_in : std_logic_vector2) return TYPE_MII_SPEED is
 --    variable mii_speed : TYPE_MII_SPEED;
