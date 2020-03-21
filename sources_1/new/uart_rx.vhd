@@ -29,13 +29,13 @@ use work.p_uart_interface.all;
 
 entity uart_rx is
     generic(
-        G_DATA_LEN    : integer := 8;
-        G_RST_ACT_LEV : boolean := true;
-        G_USE_BREAK   : boolean := true;
-        G_USE_OVERRUN : boolean := false;
-        G_USE_UNDERRUN: boolean := false;
-        G_USE_FRAMEIN : boolean := false;
-        G_USE_PARITY  : boolean := false
+        G_DATA_WIDTH  : integer   := 8;
+        G_RST_LEVEVEL : RST_LEVEL := HL;
+		  G_LSB_MSB     : LSB_MSB   := LSB;
+        G_USE_BREAK   : boolean   := true;
+        G_USE_OVERRUN : boolean   := false;
+        G_USE_FRAMEIN : boolean   := false;
+        G_USE_PARITY  : boolean   := false
     );
     port   (
         i_clk           : in  std_logic;                      -- Input CLOCK
@@ -44,8 +44,10 @@ entity uart_rx is
         i_ena           : in  std_logic;                      -- Input Uart Enable Signal
         i_rxd           : in  std_logic;                      -- Input Reciveve Data bus Line
         o_brake         : out std_logic;                      -- Break Detected
-        o_uart_err      : out std_logic_vector(3 downto 0);   -- Output Error and Signaling
-        o_rx_data       : out std_logic_vector(0 to G_DATA_LEN-1); -- Output Recieved Data
+        o_overrun_err   : out std_logic;                      -- Output Error and Signaling
+        o_framein_err   : out std_logic;                      -- Output Error and Signaling
+        o_parity_err    : out std_logic;                      -- Output Error and Signaling
+        o_rx_data       : out std_logic_vector(G_DATA_WIDTH-1 downto 0); -- Output Recieved Data
         o_valid         : out std_logic
     );
 end uart_rx;
@@ -57,7 +59,7 @@ type TYPE_UART_FSM is (IDLE, START_BIT, UART_MSG, STOP_BIT, BREAK);
 type TYPE_OUT_REG is record
     break    : std_logic;
     uart_err : std_logic_vector(3 downto 0);
-    rx_data  : std_logic_vector(0 to G_DATA_LEN-1);
+    rx_data  : std_logic_vector(0 to G_DATA_WIDTH-1);
     valid    : std_logic;
     sample   : std_logic;
     fsm      : TYPE_UART_FSM;
@@ -78,8 +80,8 @@ constant TYPE_OUT_REG_RST : TYPE_OUT_REG := (
     signal o_reg, c_to_o_reg : TYPE_OUT_REG;
 begin
 
-    s_reset <= '1' when ((G_RST_ACT_LEV = true and i_rst = '1') or (G_RST_ACT_LEV = false and i_rst = '0'))
-                   else '0';
+    s_reset <= i_rst; --'1' when ((G_RST_ACT_LEV = HL and i_rst = '1') or (G_RST_ACT_LEV = LL and i_rst = '0'))
+                  -- else '0';
 -------------------------------------------------------------------------------------------------------
 --        Ouput UART
 -------------------------------------------------------------------------------------------------------
@@ -117,7 +119,7 @@ comb_out_proc:
                     when UART_MSG =>
                         V.rx_data(o_reg.cnt ) := i_rxd;
 
-                        if o_reg.cnt >= G_DATA_LEN -1 then
+                        if o_reg.cnt >= G_DATA_WIDTH -1 then
                             V.fsm := STOP_BIT;
                         else
                             V.fsm := UART_MSG;
@@ -159,7 +161,7 @@ comb_out_proc:
     o_valid    <= o_reg.valid;
     o_rx_data  <= o_reg.rx_data when o_reg.valid = '1'
                                 else (others => '0');
-    o_uart_err <= o_reg.uart_err;
+--    o_uart_err <= o_reg.uart_err;
     o_brake    <= o_reg.break;
 
 end Behavioral;
