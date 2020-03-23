@@ -122,10 +122,9 @@ UART_RX_inst1: uart_rx
         G_RST_LEVEVEL      => HL,
         G_LSB_MSB          => LSB,
         G_USE_BREAK        => true,
-        G_USE_OVERRUN      => true,
-        G_USE_FRAMEIN      => true,
-        G_USE_PARITY_ODD   => true,
-        G_USE_PARITY_EVEN  => true
+        G_USE_OVERRUN      => false,
+        G_USE_FRAMEIN      => false,
+        G_USE_PARITY       => even
     )
     port map  (
         i_clk           => i_clk,               -- Input CLOCK

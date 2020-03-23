@@ -52,6 +52,8 @@ package p_uart_interface is
     type RST_LEVEL is (HL, LL);
     --! Used to choose LSB or MSB data expected on the rxd input
     type LSB_MSB   is (LSB , MSB);
+    --! Used PARITY type
+    type U_PARITY  is (NONE, EVEN, ODD);
 
     --! Calculates parity
     function f_parity(s_in           : std_logic_vector) return std_logic;
@@ -91,11 +93,11 @@ package body p_uart_interface is
     function f_parity(s_in : std_logic_vector) return std_logic is
         variable ret : std_logic;
     begin
-	    ret := '0';
+        ret := '0';
 
         for i in 0 to s_in'length -1 loop
-		    ret := ret xor s_in(i);
-		end loop;
+            ret := ret xor s_in(i);
+        end loop;
 
         return ret;
     end function;

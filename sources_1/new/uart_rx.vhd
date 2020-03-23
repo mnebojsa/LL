@@ -31,8 +31,7 @@ entity uart_rx is
         G_USE_BREAK        : boolean   := true;
         G_USE_OVERRUN      : boolean   := false;
         G_USE_FRAMEIN      : boolean   := false;
-        G_USE_PARITY_ODD   : boolean   := false;
-        G_USE_PARITY_EVEN  : boolean   := false
+        G_USE_PARITY       : U_PARITY  := NONE
     );
     port   (
         i_clk           : in  std_logic;                      -- Input CLOCK
@@ -52,7 +51,7 @@ end uart_rx;
 
 architecture Behavioral of uart_rx is
 
-    type TYPE_UART_FSM is (IDLE, START_BIT, UART_MSG, PARITY, STOP_BIT, BREAK);
+    type TYPE_UART_FSM is (IDLE, UART_MSG, PARITY, STOP_BIT, BREAK);
 
     type TYPE_OUT_REG is record
         break       : std_logic;
@@ -64,8 +63,6 @@ architecture Behavioral of uart_rx is
         fsm         : TYPE_UART_FSM;
         cnt         : integer range 0 to G_DATA_WIDTH;
         break_cnt   : integer range 0 to 15;
-        dddddd      : std_logic;
-        xxx         : integer;
     end record;
 
     constant TYPE_OUT_REG_RST : TYPE_OUT_REG := (
@@ -77,9 +74,7 @@ architecture Behavioral of uart_rx is
         valid        => '0',
         fsm          => IDLE,
         cnt          => 0,
-        break_cnt    => 0,
-        dddddd       => '0',
-        xxx          => 0);
+        break_cnt    => 0);
 
     constant const_timeout : integer := 5;
 
@@ -88,6 +83,7 @@ architecture Behavioral of uart_rx is
     signal c_to_o_reg : TYPE_OUT_REG;
     signal r_sample   : std_logic;
     signal c_sample   : std_logic;
+
 begin
 
     s_reset <= '1' when ((G_RST_LEVEVEL = HL and i_rst = '1') or (G_RST_LEVEVEL = LL and i_rst = '0'))
@@ -114,40 +110,32 @@ reg_out_proc:
     c_sample <= i_sample;
 
 comb_out_proc:
-    process(i_ena, i_sample, i_rxd, i_data_accepted,
-            o_reg.fsm, o_reg.cnt, o_reg.valid, o_reg.rx_data, o_reg.overrun_err,  o_reg.framein_err,  o_reg.parity_err, o_reg.break)
+    process(i_ena, i_sample, i_rxd, i_data_accepted, r_sample,
+            o_reg)--o_reg.fsm, o_reg.cnt, o_reg.valid, o_reg.rx_data, o_reg.overrun_err,  o_reg.framein_err,  o_reg.parity_err, o_reg.break)
         variable V         : TYPE_OUT_REG;
         variable v_started : std_logic;
     begin
         V         := o_reg;
 
         if i_ena = '1' then
+            if i_sample = '1' and r_sample = '0' then
                 case (o_reg.fsm) is
                     when IDLE =>
                         V := TYPE_OUT_REG_RST;
                         if i_rxd = '0' then
-                            V.fsm := START_BIT;
+                            V.fsm := UART_MSG;
+                            if (G_LSB_MSB = LSB) then
+                                V.cnt := 0;
+                            else
+                                V.cnt := G_DATA_WIDTH -1;
+                            end if;
                         end if;
-
-                    when START_BIT =>
-                    if i_sample = '1' and r_sample = '0' then
-                        if (G_LSB_MSB = LSB) then
-                            V.cnt := 0;
-                        else
-                            V.cnt := G_DATA_WIDTH -1;
-                        end if;
-
-                        V.fsm := UART_MSG;
-                    end if;
 
                     when UART_MSG =>
-                    if i_sample = '1' and r_sample = '0' then
                         V.rx_data(o_reg.cnt) := i_rxd;
-                        V.dddddd := V.rx_data(o_reg.cnt);
-                        V.xxx      := o_reg.cnt;
                         if (G_LSB_MSB = LSB) then
                             if(o_reg.cnt = G_DATA_WIDTH -1) then
-                                if (G_USE_PARITY_ODD = true or G_USE_PARITY_EVEN = true) then
+                                if (G_USE_PARITY = ODD or G_USE_PARITY = EVEN) then
                                     V.fsm  := PARITY;
                                 else
                                     V.fsm  := STOP_BIT;
@@ -159,7 +147,7 @@ comb_out_proc:
                         else
                             V.cnt := o_reg.cnt -1;
                             if(o_reg.cnt = 0) then
-                                if (G_USE_PARITY_ODD = true or G_USE_PARITY_EVEN = true) then
+                                if (G_USE_PARITY = ODD or G_USE_PARITY = EVEN) then
                                     V.fsm := PARITY;
                                 else
                                     V.fsm   := STOP_BIT;
@@ -168,24 +156,34 @@ comb_out_proc:
                                 V.fsm  := UART_MSG;
                             end if;
                         end if;
-                    end if;
 
                     when PARITY =>
-                        if (G_USE_PARITY_ODD = true or G_USE_PARITY_EVEN = true) then
-                            if i_sample = '1' and r_sample = '0' then
-                                if ( ((G_USE_PARITY_ODD  = true) and (i_rxd =     f_parity(o_reg.rx_data(0 to G_DATA_WIDTH-1)))) or
-                                     ((G_USE_PARITY_EVEN = true) and (i_rxd = not(f_parity(o_reg.rx_data(0 to G_DATA_WIDTH-1)))))) then
-                                    V.fsm        := STOP_BIT;
-                                    V.parity_err := '0';
-                                else
-                                    V.fsm        := IDLE;
-                                    V.parity_err := '1';
-                                end if;
+                        if (G_USE_PARITY = ODD) then
+                            if (((G_USE_PARITY = ODD ) and (i_rxd = f_parity(o_reg.rx_data(0 to G_DATA_WIDTH-1))))) then
+                                V.fsm        := STOP_BIT;
+                                V.parity_err := '0';
+                            else
+                                V.fsm        := IDLE;
+                                V.parity_err := '1';
                             end if;
                         end if;
 
+                        if (G_USE_PARITY = EVEN) then
+                            if (((G_USE_PARITY = EVEN) and (i_rxd = not(f_parity(o_reg.rx_data(0 to G_DATA_WIDTH-1)))))) then
+                                V.fsm        := STOP_BIT;
+                                V.parity_err := '0';
+                            else
+                                V.fsm        := IDLE;
+                                V.parity_err := '1';
+                            end if;
+                        end if;
+
+                        if (G_USE_PARITY = NONE) then
+                            V.fsm        := IDLE;
+                            V.parity_err := '0';
+                                end if;
+
                     when STOP_BIT =>
-                    if i_sample = '1' and r_sample = '0' then
                         if (i_rxd = '1') then
                             V.valid := '1';
                             if (G_USE_FRAMEIN = true) then
@@ -209,11 +207,9 @@ comb_out_proc:
                                  V.fsm         := BREAK;
                             end if;
                         end if;
-                    end if;
 
                     when BREAK =>
                         if (G_USE_BREAK = true) then
-                        if i_sample = '1' and r_sample = '0' then
                             if (i_rxd = '1') then
                                 V.valid := '1';
                                 V.fsm   := STOP_BIT;
@@ -233,11 +229,11 @@ comb_out_proc:
                                 V.break := '0';
                             end if;
                         end if;
-                        end if;
 
                     when others =>
                         V := TYPE_OUT_REG_RST;
                 end case;
+            end if;
         end if;
 
         c_to_o_reg <= V;
