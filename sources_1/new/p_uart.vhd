@@ -1,3 +1,49 @@
+----------------------------------------------------------------------------------
+-- Company:  RT-RK
+-- Engineer: Nebojsa Markovic
+--
+-- Create Date: 10.03.2020 13:46:37
+-- Design Name:
+-- Module Name: uart_rx - Behavioral
+-- Project Name:
+-- Description:
+--
+-- Dependencies:
+--
+-- Revision:
+-- Revision 0.01 - File Created
+----------------------------------------------------------------------------------
+
+--------------------------------------------------------------------------------------------
+--                    UART_RX INSTANTIATION template
+--------------------------------------------------------------------------------------------
+
+--UART_RX_inst_num: uart_rx
+--    generic map(
+--        G_DATA_WIDTH       => 8,
+--        G_RST_LEVEVEL      => HL,
+--        G_LSB_MSB          => LSB,
+--        G_USE_BREAK        => true,
+--        G_USE_OVERRUN      => true,
+--        G_USE_FRAMEIN      => true,
+--        G_USE_PARITY_ODD   => true,
+--        G_USE_PARITY_EVEN  => true
+--    )
+--    port map  (
+--        i_clk           => i_clk,               -- Input CLOCK
+--        i_rst           => s_rst,               -- Input Reset for clk
+--        i_sample        => s_sample,            -- Input Sample signal - comes from BAUD RATE GENERATOR- signal to sample input
+--        i_ena           => s_ena,               -- Input Uart Enable Signal
+--        i_rxd           => s_rxd,               -- Input Reciveve Data bus Line
+--        i_data_accepted => s_data_accepted,     -- Input Data Recieved througth UART are stored/used
+--        o_brake         => s_uart_brake,        -- Break Detected
+--        o_overrun_err   => s_overrun_err,       -- Output Error and Signaling
+--        o_framein_err   => s_framein_err,       -- Output Error and Signaling
+--        o_parity_err    => s_parity_err,        -- Output Error and Signaling
+--        o_valid         => s_uart_valid,
+--        o_rx_data       => s_uart_rx_data       -- Output Recieved Data
+--    );
+
 library ieee;
 use ieee.std_logic_1164.all;
 
@@ -55,35 +101,3 @@ package body p_uart_interface is
     end function;
 
 end package body;
-
---------------------------------------------------------------------------------------------
---                    UART_RX INSTANTIATION template
---------------------------------------------------------------------------------------------
-
---UART_RX_inst_num: uart_rx
---    generic map(
---        G_DATA_WIDTH       => 8,
---        G_RST_LEVEVEL      => HL,
---        G_LSB_MSB          => LSB,
---        G_USE_BREAK        => true,
---        G_USE_OVERRUN      => true,
---        G_USE_FRAMEIN      => true,
---        G_USE_PARITY_ODD   => true,
---        G_USE_PARITY_EVEN  => true
---    )
---    port map  (
---        i_clk           => i_clk,               -- Input CLOCK
---        i_rst           => s_rst,               -- Input Reset for clk
---        i_sample        => s_sample,            -- Input Sample signal - comes from BAUD RATE GENERATOR- signal to sample input
---        i_ena           => s_ena,               -- Input Uart Enable Signal
---        i_rxd           => s_rxd,               -- Input Reciveve Data bus Line
---        i_data_accepted => s_data_accepted,     -- Input Data Recieved througth UART are stored/used
---        o_brake         => s_uart_brake,        -- Break Detected
---        o_overrun_err   => s_overrun_err,       -- Output Error and Signaling
---        o_framein_err   => s_framein_err,       -- Output Error and Signaling
---        o_parity_err    => s_parity_err,        -- Output Error and Signaling
---        o_valid         => s_uart_valid,
---        o_rx_data       => s_uart_rx_data       -- Output Recieved Data
---    );
-
-

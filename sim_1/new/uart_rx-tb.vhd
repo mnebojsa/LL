@@ -47,43 +47,20 @@ end;
 
 architecture bench of uart_rx_tb is
 
-  component uart_rx
-      generic(
-        G_DATA_WIDTH       : integer   := 8;
-        G_RST_LEVEVEL      : RST_LEVEL := HL;
-        G_LSB_MSB          : LSB_MSB   := LSB;
-        G_USE_BREAK        : boolean   := true;
-        G_USE_OVERRUN      : boolean   := false;
-        G_USE_FRAMEIN      : boolean   := false;
-        G_USE_PARITY_ODD   : boolean   := false;
-        G_USE_PARITY_EVEN  : boolean   := false
-      );
-      port   (
-        i_clk           : in  std_logic;                      -- Input CLOCK
-        i_rst           : in  std_logic;                      -- Input Reset for clk
-        i_sample        : in  std_logic;                      -- Input Sample signal - comes from BAUD RATE GENERATOR- signal to sample input
-        i_ena           : in  std_logic;                      -- Input Uart Enable Signal
-        i_rxd           : in  std_logic;                      -- Input Reciveve Data bus Line
-        o_brake         : out std_logic;                      -- Break Detected
-        o_overrun_err   : out std_logic;                      -- Output Error and Signaling
-        o_framein_err   : out std_logic;                      -- Output Error and Signaling
-        o_parity_err    : out std_logic;                      -- Output Error and Signaling
-        o_rx_data       : out std_logic_vector(G_DATA_WIDTH-1 downto 0); -- Output Recieved Data
-        o_valid         : out std_logic
-      );
-  end component;
+  signal i_clk         : std_logic;
+  signal i_rst         : std_logic;
+  signal i_sample      : std_logic;
+  signal i_ena         : std_logic;
+  signal i_rxd         : std_logic := '1';
 
-  signal i_clk: std_logic;
-  signal i_rst: std_logic;
-  signal i_sample: std_logic;
-  signal i_ena: std_logic;
-  signal i_rxd: std_logic := '1';
-  signal o_brake: std_logic;
-  signal o_uart_err: std_logic_vector(3 downto 0);
-  signal o_rx_data: std_logic_vector(0 to G_DATA_WIDTH-1);
-  signal o_valid: std_logic ;
+  signal o_brake       : std_logic;
+  signal o_overrun_err : std_logic;
+  signal o_framein_err : std_logic;
+  signal o_parity_err  : std_logic;
+  signal o_rx_data     : std_logic_vector(0 to G_DATA_WIDTH-1);
+  signal o_valid       : std_logic ;
 
-  signal send_data : unsigned(0 to 9);
+  signal send_data     : unsigned(0 to 9) := "0101010101";
 
   constant clock_period: time := 10 ns;
   signal stop_the_clock: boolean;
@@ -104,10 +81,11 @@ begin
                              i_sample       => i_sample,
                              i_ena          => i_ena,
                              i_rxd          => i_rxd,
+                             i_data_accepted=> '1',
                              o_brake        => o_brake,
-                             o_overrun_err  => open, --o_overrun_err,
-                             o_framein_err  => open, --o_overrun_err,
-                             o_parity_err   => open, --o_parity_err,
+                             o_overrun_err  => o_overrun_err, --o_overrun_err,
+                             o_framein_err  => o_framein_err, --o_overrun_err,
+                             o_parity_err   => o_parity_err,  --o_parity_err,
                              o_rx_data      => o_rx_data,
                              o_valid        => o_valid 
 									  );
@@ -125,15 +103,14 @@ begin
   end process;
 
 
-  data: process(o_valid)
-      variable v_data : unsigned(0 to 7) := (others => '0');
-  begin
-      if rising_edge(o_valid) then
-          v_data := v_data +1;
-      end if;
-      
-      send_data <= '0' & v_data & '1';
-  end process;
+--  data: process(o_valid)
+--      variable v_data : unsigned(0 to 7) := (others => '0');
+--  begin
+--      if rising_edge(o_valid) then
+--          v_data := "10101010";-- v_data +1;
+--      end if;
+--      send_data <= '0' & v_data & '1';
+--  end process;
 
   stimulus: process(i_sample)
       variable cnt       : integer := 0;
@@ -151,9 +128,9 @@ begin
 
   sample: process
   begin
-  wait for clock_period;-- * 5;
+  wait for clock_period * 5;
      i_sample <= '1';
-  wait for clock_period;-- * 3;
+  wait for clock_period * 3;
      i_sample <= '0';
   end process;
 

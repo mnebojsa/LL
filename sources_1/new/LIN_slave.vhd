@@ -133,6 +133,7 @@ UART_RX_inst1: uart_rx
         i_sample        => i_sample,            -- Input Sample signal - comes from BAUD RATE GENERATOR- signal to sample input
         i_ena           => '1',                 -- Input Uart Enable Signal
         i_rxd           => i_data,              -- Input Reciveve Data bus Line
+        i_data_accepted => '1',
         o_brake         => s_uart_brake,        -- Break Detected
         o_overrun_err   => s_overrun_err,       -- Output Error and Signaling
         o_framein_err   => s_framein_err,       -- Output Error and Signaling
