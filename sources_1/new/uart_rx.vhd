@@ -65,6 +65,7 @@ architecture Behavioral of uart_rx is
         cnt         : integer range 0 to G_DATA_WIDTH;
         break_cnt   : integer range 0 to 15;
         dddddd      : std_logic;
+        xxx         : integer;
     end record;
 
     constant TYPE_OUT_REG_RST : TYPE_OUT_REG := (
@@ -77,7 +78,8 @@ architecture Behavioral of uart_rx is
         fsm          => IDLE,
         cnt          => 0,
         break_cnt    => 0,
-        dddddd       => '0');
+        dddddd       => '0',
+        xxx          => 0);
 
     constant const_timeout : integer := 5;
 
@@ -142,6 +144,7 @@ comb_out_proc:
                     if i_sample = '1' and r_sample = '0' then
                         V.rx_data(o_reg.cnt) := i_rxd;
                         V.dddddd := V.rx_data(o_reg.cnt);
+                        V.xxx      := o_reg.cnt;
                         if (G_LSB_MSB = LSB) then
                             if(o_reg.cnt = G_DATA_WIDTH -1) then
                                 if (G_USE_PARITY_ODD = true or G_USE_PARITY_EVEN = true) then
