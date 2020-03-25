@@ -30,18 +30,17 @@ use IEEE.NUMERIC_STD.ALL;
 -- any Xilinx leaf cells in this code.
 --library UNISIM;
 --use UNISIM.VComponents.all;
-use work.p_uart_interface.all;
+use work.p_uart.all;
 
 entity uart_rx_tb is
       generic(
         G_DATA_WIDTH       : integer   := 8;
         G_RST_LEVEVEL      : RST_LEVEL := HL;
-        G_LSB_MSB          : LSB_MSB   := MSB;
-        G_USE_BREAK        : boolean   := true;
+        G_LSB_MSB          : LSB_MSB   := LSB;
+        G_USE_BREAK        : boolean   := false;
         G_USE_OVERRUN      : boolean   := false;
-        G_USE_FRAMEIN      : boolean   := false;
-        G_USE_PARITY_ODD   : boolean   := false;
-        G_USE_PARITY_EVEN  : boolean   := false
+        G_USE_FRAMEIN      : boolean   := true;
+        G_USE_PARITY       : U_PARITY  := NONE
       );
 end;
 
@@ -76,8 +75,7 @@ begin
 		    G_USE_BREAK      => G_USE_BREAK,
 		    G_USE_OVERRUN    => G_USE_OVERRUN,
 		    G_USE_FRAMEIN    => G_USE_FRAMEIN,
-		    G_USE_PARITY_ODD => G_USE_PARITY_ODD,
-		    G_USE_PARITY_EVEN=> G_USE_PARITY_EVEN)
+		    G_USE_PARITY     => G_USE_PARITY)
       port map (
 		    i_clk          => i_clk,
 		    i_rst          => i_rst,
@@ -94,73 +92,73 @@ begin
 		    );
 
 
-  reset_proc: process
-  begin
-      i_rst    <= '1';
-      i_ena    <= '0';
-          wait for clock_period * 50;
-      i_rst    <= '0';
-          wait for clock_period * 50;
-      i_ena    <= '1';
-          wait;
-  end process;
+--  reset_proc: process
+--  begin
+--      i_rst    <= '1';
+--      i_ena    <= '0';
+--          wait for clock_period * 50;
+--      i_rst    <= '0';
+--          wait for clock_period * 50;
+--      i_ena    <= '1';
+--          wait;
+--  end process;
 
-  data: process(o_valid)
-      variable v_data : unsigned(0 to 7) := (others => '0');
-  begin
-      if rising_edge(o_valid) then
-          v_data := v_data +1;
-      end if;
-      send_data <= '0' & v_data & '1';
-  end process;
+--  data: process(o_valid)
+--      variable v_data : unsigned(0 to 7) := (others => '0');
+--  begin
+--      if rising_edge(o_valid) then
+--          v_data := v_data +1;
+--      end if;
+--      send_data <= '0' & v_data & '1';
+--  end process;
 
-  break: process(i_sample)
-      variable v_data : unsigned(0 to 13) := (others => '0');
-      variable cnt       : integer := 0;
-      variable send_data : unsigned(0 to 15) := (others => '0');
-  begin
-      v_data    := (others => '0');
-      send_data := '0' & v_data & '1';
-      if rising_edge(i_sample) then
-          if (i_ena = '1' and s_break_done <='0') then
-              cnt   := (cnt + 1);
-		        if( cnt >= 16) then
-			         s_break_done <='1';
-			     else
-				      s_break_done <='0';
-				      i_rxd <= send_data(cnt);
-				  end if;
-	       else
-              cnt := 0;				  
-          end if;
+--  break: process(i_sample)
+--      variable v_data : unsigned(0 to 13) := (others => '0');
+--      variable cnt       : integer := 0;
+--      variable send_data : unsigned(0 to 15) := (others => '0');
+--  begin
+--      v_data    := (others => '0');
+--      send_data := '0' & v_data & '1';
+--      if rising_edge(i_sample) then
+--          if (i_ena = '1' and s_break_done <='0') then
+--              cnt   := (cnt + 1);
+--		        if( cnt >= 16) then
+--			         s_break_done <='1';
+--			     else
+--				      s_break_done <='0';
+--				      i_rxd <= send_data(cnt);
+--				  end if;
+--	       else
+--              cnt := 0;				  
+--          end if;
 			 
-			 if i_ena = '0' then
-			     i_rxd <= '1';
-			 end if;
-		end if;
-  end process;
+--			 if i_ena = '0' then
+--			     i_rxd <= '1';
+--			 end if;
+--		end if;
+--  end process;
 
-  stimulus: process(i_sample)
-      variable cnt1       : integer := 0;
-      variable in_data   : unsigned(0 to 7) := (others => '0');
-  begin
-      if rising_edge(i_sample) then
-          if (i_ena = '1' and s_break_done = '1') then
-              --i_rxd <= send_data(cnt1);
-              cnt1 := (cnt1 + 1) rem 10;
-          end if;
-      end if;  
+--  stimulus: process(i_sample)
+--      variable cnt1       : integer := 0;
+--      variable in_data   : unsigned(0 to 7) := (others => '0');
+--  begin
+--      if rising_edge(i_sample) then
+--          if (i_ena = '1' and s_break_done = '1') then
+--              --i_rxd <= send_data(cnt1);
+--              cnt1 := (cnt1 + 1) rem 10;
+--          end if;
+--      end if;  
 
-  end process;
+--  end process;
 
 
-  sample: process
-  begin
-  wait for clock_period * 5;
-     i_sample <= '1';
-  wait for clock_period * 3;
-     i_sample <= '0';
-  end process;
+--  sample: process
+--  begin
+--  wait for clock_period * 5;
+--     i_sample <= '1';
+--  wait for clock_period * 3;
+--     i_sample <= '0';
+--  end process;
 
   clocking: process
   begin
@@ -169,6 +167,208 @@ begin
       wait for clock_period;
     end loop;
     wait;
+  end process;
+
+
+  reset_proc: process
+  begin
+      i_rst    <= '1';
+      i_ena    <= '0';
+      i_rxd    <= '1';
+          wait for clock_period * 50;
+      i_rst    <= '0';
+          wait for clock_period * 50;
+
+      i_ena    <= '1';
+
+      wait for clock_period * 5;
+
+    for i in 0 to 3 loop
+      wait for clock_period;
+          i_sample <= '1';
+      wait for clock_period *3;
+          i_sample <= '0';
+      wait for clock_period *2;
+    end loop;
+
+          i_rxd <= '0';        --start
+      wait for clock_period;
+          i_sample <= '1';
+      wait for clock_period *3;
+          i_sample <= '0';
+      wait for clock_period *2;
+      
+  
+          i_rxd    <= '1';      -- 0
+      wait for clock_period;
+          i_sample <= '1';
+      wait for clock_period *3;
+          i_sample <= '0';
+      wait for clock_period *2;  
+ 
+ 
+           i_rxd <= '0';       --1
+  wait for clock_period;
+      i_sample <= '1';
+  wait for clock_period *3;
+      i_sample <= '0';
+  wait for clock_period *2;
+  
+
+      i_rxd    <= '1';             --2
+  wait for clock_period;
+      i_sample <= '1';
+  wait for clock_period *3;
+      i_sample <= '0';
+  wait for clock_period *2;  
+  
+  
+            i_rxd <= '0';        --3
+wait for clock_period;
+  i_sample <= '1';
+wait for clock_period *3;
+  i_sample <= '0';
+wait for clock_period *2;
+
+
+  i_rxd    <= '1';                --4
+wait for clock_period;
+  i_sample <= '1';
+wait for clock_period *3;
+  i_sample <= '0';
+wait for clock_period *2;  
+
+
+          i_rxd <= '0';             --5
+      wait for clock_period;
+          i_sample <= '1';
+      wait for clock_period *3;
+          i_sample <= '0';
+      wait for clock_period *2;
+      
+  
+          i_rxd    <= '1';          --6
+      wait for clock_period;
+          i_sample <= '1';
+      wait for clock_period *3;
+          i_sample <= '0';
+      wait for clock_period *2;  
+
+
+          i_rxd <= '0';              --7
+      wait for clock_period;
+          i_sample <= '1';
+      wait for clock_period *3;
+          i_sample <= '0';
+      wait for clock_period *2;
+      
+  
+          i_rxd    <= '1';           --add
+      wait for clock_period;
+          i_sample <= '1';
+      wait for clock_period *3;
+          i_sample <= '0';
+      wait for clock_period *2;  
+
+
+          i_rxd    <= '1';           --add
+      wait for clock_period;
+          i_sample <= '1';
+      wait for clock_period *3;
+          i_sample <= '0';
+      wait for clock_period *2;
+      
+          i_rxd    <= '1';           --add
+     wait for clock_period;
+          i_sample <= '1';
+     wait for clock_period *3;
+          i_sample <= '0';
+     wait for clock_period *2;
+
+
+          i_rxd <= '1';              -- stop
+      wait for clock_period;
+          i_sample <= '1';
+      wait for clock_period *3;
+          i_sample <= '0';
+      wait for clock_period *2;
+      
+  
+          i_rxd    <= '1';
+      wait for clock_period;
+          i_sample <= '1';
+      wait for clock_period *3;
+          i_sample <= '0';
+      wait for clock_period *2;  
+ 
+ 
+           i_rxd    <= '1';           --add
+  wait for clock_period;
+      i_sample <= '1';
+  wait for clock_period *3;
+      i_sample <= '0';
+  wait for clock_period *2;  
+
+
+      i_rxd    <= '0';           --add
+  wait for clock_period;
+      i_sample <= '1';
+  wait for clock_period *3;
+      i_sample <= '0';
+  wait for clock_period *2;
+  
+      i_rxd    <= '0';           --add
+ wait for clock_period;
+      i_sample <= '1';
+ wait for clock_period *3;
+      i_sample <= '0';
+ wait for clock_period *2;
+ 
+           i_rxd    <= '0';           --add
+wait for clock_period;
+ i_sample <= '1';
+wait for clock_period *3;
+ i_sample <= '0';
+wait for clock_period *2;  
+
+
+ i_rxd    <= '0';           --add
+wait for clock_period;
+ i_sample <= '1';
+wait for clock_period *3;
+ i_sample <= '0';
+wait for clock_period *2;
+
+ i_rxd    <= '0';           --add
+wait for clock_period;
+ i_sample <= '1';
+wait for clock_period *3;
+ i_sample <= '0';
+wait for clock_period *2;
+
+          i_rxd    <= '0';           --add
+      wait for clock_period;
+          i_sample <= '1';
+      wait for clock_period *3;
+          i_sample <= '0';
+      wait for clock_period *2;  
+
+
+          i_rxd    <= '0';           --add
+      wait for clock_period;
+          i_sample <= '1';
+      wait for clock_period *3;
+          i_sample <= '0';
+      wait for clock_period *2;
+      
+          i_rxd    <= '1';           --add
+     wait for clock_period;
+          i_sample <= '1';
+     wait for clock_period *3;
+          i_sample <= '0';
+     wait for clock_period *2;
+     
+          wait;
   end process;
 
 end;

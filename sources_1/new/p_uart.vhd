@@ -47,7 +47,7 @@
 library ieee;
 use ieee.std_logic_1164.all;
 
-package p_uart_interface is
+package p_uart is
     --! Used to select High(HL) ot Low(LL) Reset Level for the module
     type RST_LEVEL is (HL, LL);
     --! Used to choose LSB or MSB data expected on the rxd input
@@ -67,8 +67,7 @@ package p_uart_interface is
             G_USE_BREAK        : boolean;
             G_USE_OVERRUN      : boolean;
             G_USE_FRAMEIN      : boolean;
-            G_USE_PARITY_ODD   : boolean;
-            G_USE_PARITY_EVEN  : boolean
+            G_USE_PARITY       : U_PARITY
         );
         port   (
             i_clk           : in  std_logic;                      -- Input CLOCK
@@ -88,7 +87,7 @@ package p_uart_interface is
 
 end package;
 
-package body p_uart_interface is
+package body p_uart is
 
     function f_parity(s_in : std_logic_vector) return std_logic is
         variable ret : std_logic;
