@@ -30,18 +30,21 @@ use IEEE.STD_LOGIC_1164.ALL;
 -- any Xilinx leaf cells in this code.
 --library UNISIM;
 --use UNISIM.VComponents.all;
-use work.p_uart_interface.all;
+use work.p_uart.all;
+use work.p_lin.all;
 
 entity LIN_slave is
     generic
     (
-        G_DATA_LEN : integer := 8
+        G_DATA_LEN     : integer := 8;
+        G_COMUNICATION : COMNCT_SPEED := DETECT_SPEED -- CONST_SPEED, DETECT_SPEED
     );
     port 
     ( 
         i_clk     : in  std_logic;
         i_rst     : in  std_logic;
         i_data    : in  std_logic;
+        i_ena     : in  std_logic;
         o_data    : out std_logic_vector(0 to 7)
     );
 end LIN_slave;
@@ -49,33 +52,14 @@ end LIN_slave;
 architecture Behavioral of LIN_slave is
 
     component baud_rate_gen is
-        generic( G_RST_ACT_LEV : boolean := true;
-                 G_PRESCALER   : integer := 5);
+        generic( G_RST_ACT_LEV : boolean                := true;
+                 G_PRESCALER   : integer range 0 to 256 := 5);
         port   ( i_clk         : in  std_logic;
                  i_rst         : in  std_logic;
                  o_br_sample   : out std_logic);
     end component baud_rate_gen;
 
-    component LIN_fsm is
-        generic(
-            G_DATA_LEN    : integer := 8;
-            G_RST_ACT_LEV : boolean := true
-        );
-        port   (
-            i_clk           : in  std_logic;                      -- Input CLOCK
-            i_rst           : in  std_logic;                      -- Input Reset for clk
-            i_valid_data    : in  std_logic;                      -- Input Sample signal - comes from BAUD RATE GENERATOR- signal to sample input
-            i_brake         : in  std_logic;                      -- Break Detected
-            i_rxd           : in  std_logic_vector(0 to G_DATA_LEN -1); -- Input Reciveve Data bus Line
-            i_err           : in  std_logic;                      -- Output Error and Signaling
-            o_rx_data       : out std_logic_vector(0 to G_DATA_LEN -1); -- Output Recieved Data
-            o_valid         : out std_logic;
-            o_to_mit        : out std_logic
-        );
-   end component LIN_fsm;
-
-
-    signal i_sample, i_ena : std_logic; 
+    signal s_sample                   : std_logic; 
 
 
     signal s_uart_valid, s_uart_brake : std_logic;
@@ -93,14 +77,15 @@ BRG_inst: baud_rate_gen
     port map( 
         i_clk       => i_clk,
         i_rst       => i_rst,
-        o_br_sample => i_sample
+        o_br_sample => s_sample
         ); 
 
 
 LIN_fsm_inst: LIN_fsm
         generic map(
-            G_DATA_LEN    => G_DATA_LEN,
-            G_RST_ACT_LEV  => true
+            G_DATA_LEN    => 8,
+            G_RST_LEVEVEL => HL,
+            G_LIN_STANDARD=> L2_0
         )
         port map(
             i_clk           => i_clk,               -- Input CLOCK
@@ -114,7 +99,7 @@ LIN_fsm_inst: LIN_fsm
             o_to_mit        => open
         );
 
-s_uart_err <= s_overrun_err or s_framein_err or s_parity_err;
+    s_uart_err <= s_overrun_err or s_framein_err or s_parity_err;
 
 UART_RX_inst1: uart_rx
     generic map(
@@ -123,14 +108,14 @@ UART_RX_inst1: uart_rx
         G_LSB_MSB          => LSB,
         G_USE_BREAK        => true,
         G_USE_OVERRUN      => false,
-        G_USE_FRAMEIN      => false,
-        G_USE_PARITY       => even
+        G_USE_FRAMEIN      => true,
+        G_USE_PARITY       => NONE
     )
     port map  (
         i_clk           => i_clk,               -- Input CLOCK
         i_rst           => i_rst,               -- Input Reset for clk
-        i_sample        => i_sample,            -- Input Sample signal - comes from BAUD RATE GENERATOR- signal to sample input
-        i_ena           => '1',                 -- Input Uart Enable Signal
+        i_sample        => s_sample,            -- Input Sample signal - comes from BAUD RATE GENERATOR- signal to sample input
+        i_ena           => i_ena,               -- Input Uart Enable Signal
         i_rxd           => i_data,              -- Input Reciveve Data bus Line
         i_data_accepted => '1',
         o_brake         => s_uart_brake,        -- Break Detected

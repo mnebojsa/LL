@@ -40,7 +40,7 @@ entity uart_rx_tb is
         G_USE_BREAK        : boolean   := false;
         G_USE_OVERRUN      : boolean   := false;
         G_USE_FRAMEIN      : boolean   := true;
-        G_USE_PARITY       : U_PARITY  := NONE
+        G_USE_PARITY       : U_PARITY  := ODD
       );
 end;
 
@@ -247,7 +247,7 @@ wait for clock_period *2;
       wait for clock_period *2;
       
   
-          i_rxd    <= '1';          --6
+          i_rxd    <= '0';          --6
       wait for clock_period;
           i_sample <= '1';
       wait for clock_period *3;

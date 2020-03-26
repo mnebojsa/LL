@@ -75,7 +75,7 @@ entity uart_rx is
         G_USE_BREAK        : boolean   := false;              -- true, false
         G_USE_OVERRUN      : boolean   := false;              -- true, false
         G_USE_FRAMEIN      : boolean   := false;              -- true, false
-        G_USE_PARITY       : U_PARITY  := NONE                -- NONE(Parity not used), ODD(odd parity), EVEN(Even parity)
+        G_USE_PARITY       : U_PARITY  := ODD                -- NONE(Parity not used), ODD(odd parity), EVEN(Even parity)
     );
     port   (
         i_clk           : in  std_logic;                      -- Input CLOCK
@@ -97,8 +97,24 @@ architecture Behavioral of uart_rx is
     -- UART FSM states
     type TYPE_UART_FSM is (IDLE, START_BIT, UART_MSG, PARITY, STOP_BIT, BREAK);
 
+    -- Inputs registered
+    type TYPE_IN_REG is record
+        sample      : std_logic;                      -- Input Sample signal - comes from BAUD RATE GENERATOR- signal to sample input
+        ena         : std_logic;                      -- Input Uart Enable Signal
+        rxd         : std_logic;                      -- Input Reciveve Data bus Line
+        data_acc    : std_logic;                      -- Input Data Recieved througth UART are stored/used
+    end record;
+
+    -- Reset Values for TYPE_IN_REG type data
+    constant TYPE_IN_REG_RST : TYPE_IN_REG := (
+        sample       => '0',
+        ena          => '0',
+        rxd          => '0',
+        data_acc     => '0');
+
     -- Siginficant values that would be forvarded to output or used for checks in code
     type TYPE_OUT_REG is record
+        data_in     : std_logic;                                -- Input data registered
         break       : std_logic;                                -- Break signali
         overrun_err : std_logic;                                -- Output Error and Signaling
         framein_err : std_logic;                                -- Output Error and Signaling
@@ -112,6 +128,7 @@ architecture Behavioral of uart_rx is
 
     -- Reset Values for TYPE_OUT_REG type data
     constant TYPE_OUT_REG_RST : TYPE_OUT_REG := (
+        data_in      => '0',
         break        => '0',
         overrun_err  => '0',
         framein_err  => '0',
@@ -129,6 +146,11 @@ architecture Behavioral of uart_rx is
 
     -- signal - takes High Level if there is active RESET on the module input
     signal s_reset    : std_logic;
+    -- signal - Registered inputs to the module
+    signal i_reg      : TYPE_IN_REG;
+    -- signal - Contains input values to be registered
+    signal c_to_i_reg : TYPE_IN_REG;
+
     -- signal - Registered siginficant values that would be forvarded to output or used for checks in code
     signal o_reg      : TYPE_OUT_REG;
     -- signal - Values Updated in combinational process that will be registered on the risinf edge of clk
@@ -137,6 +159,8 @@ architecture Behavioral of uart_rx is
     signal r_sample   : std_logic;
     -- signal - input i_sample value that will be registered on the rising edge of the clk
     signal c_sample   : std_logic;
+    signal ssssssss   : std_logic;
+    signal xxxxxxxx   : std_logic;
 
 begin
 
@@ -161,6 +185,23 @@ reg_sample_proc:
         end if;
     end process reg_sample_proc;
 
+-- If RST is active assign reset value to i_reg,
+-- else, if i_sample rises to '1' register c_to_o_reg value in o_reg
+reg_out_proc:
+    process(i_clk)
+    begin
+        if rising_edge(i_clk) then
+            if(s_reset = '1') then
+                i_reg      <= TYPE_IN_REG_RST;
+            else
+                if i_sample = '1' and r_sample = '0' then
+                    o_reg      <= c_to_o_reg;
+                end if;
+            end if;
+        end if;
+    end process reg_out_proc;
+
+
 -- If RST is active assign reset value to o_reg,
 -- else, if i_sample rises to '1' register c_to_o_reg value in o_reg
 reg_out_proc:
@@ -182,12 +223,13 @@ reg_out_proc:
 -------------------------------------------------------------------------------------------------------
 
 comb_out_proc:
-    process(i_ena, i_rxd, i_data_accepted,
+    process(i_ena, i_rxd, i_data_accepted,i_sample , r_sample,
             o_reg.fsm, o_reg.cnt, o_reg.valid, o_reg.rx_data, o_reg.overrun_err,  o_reg.framein_err,  o_reg.parity_err, o_reg.break)
         variable V         : TYPE_OUT_REG;
-        variable v_started : std_logic;
+        variable v_parity  : std_logic;
     begin
         V         := o_reg;
+        V.data_in := i_rxd;
 
         if i_ena = '1' then
                 case (o_reg.fsm) is
@@ -212,7 +254,9 @@ comb_out_proc:
                     -- Takes G_DATA_WIDTH bits after START_BIT to be registered
                     -- Next state is - PARITY(if used), or STOP_BIT if PARITY is not used
                     when UART_MSG =>
-                        V.rx_data(o_reg.cnt) := i_rxd;
+
+                        V.rx_data(o_reg.cnt) := o_reg.data_in;
+                        
                         if (G_LSB_MSB = MSB) then
                             if(o_reg.cnt = G_DATA_WIDTH -1) then
                                 if (G_USE_PARITY = ODD or G_USE_PARITY = EVEN) then
@@ -244,16 +288,20 @@ comb_out_proc:
                     -- Next State is STOP_BIT
                     when PARITY =>
                         V.fsm        := STOP_BIT;
-                        V.parity_err := '0';
+                        v_parity     := '0';
                         if (G_USE_PARITY = ODD) then
-                            if (i_rxd = f_parity(o_reg.rx_data(G_DATA_WIDTH-1 downto 0))) then
-                                V.parity_err := '1';
+                            ssssssss <= f_parity(o_reg.rx_data(G_DATA_WIDTH-1 downto 0));
+                            xxxxxxxx <= i_rxd;
+                            if (o_reg.data_in = f_parity(o_reg.rx_data(G_DATA_WIDTH-1 downto 0))) then
+                                v_parity := '1';
+                                ssssssss <= '0'; --i_rxd;
                             end if;
                         end if;
 
                         if (G_USE_PARITY = EVEN) then
-                            if (i_rxd = not(f_parity(o_reg.rx_data(G_DATA_WIDTH-1 downto 0)))) then
-                                V.parity_err := '1';
+                            if (o_reg.data_in = not(f_parity(o_reg.rx_data(G_DATA_WIDTH-1 downto 0)))) then
+                                v_parity := '1';
+                                ssssssss <= '0'; --i_rxd;
                             end if;
                         end if;
 
@@ -270,9 +318,6 @@ comb_out_proc:
                                 V.valid := '0';
                             end if;
 
-                            if (G_USE_FRAMEIN = true) then
-                                V.framein_err := '0';
-                            end if;
                             if (G_USE_OVERRUN = true) then
                                 if i_data_accepted = '0' and V.valid = '1' then
                                     V.overrun_err := '1';
@@ -293,6 +338,10 @@ comb_out_proc:
                                      V.framein_err := '1';
                                      V.fsm         := STOP_BIT;
                                  end if;
+                            end if;
+
+                            if (G_USE_PARITY = ODD or G_USE_PARITY = EVEN) then
+                                V.parity_err := v_parity;
                             end if;
                         end if;
 

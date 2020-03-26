@@ -39,13 +39,14 @@ architecture bench of LIN_slave_tb is
   component LIN_slave
       generic
       (
-          G_DATA_LEN : integer range 4 to 8
+          G_DATA_LEN : integer
       );
       port 
       ( 
           i_clk     : in  std_logic;
           i_rst     : in  std_logic;
           i_data    : in  std_logic;
+          i_ena     : in  std_logic;
           o_data    : out std_logic_vector(0 to 7)
       );
   end component;
@@ -61,9 +62,11 @@ architecture bench of LIN_slave_tb is
   signal i_clk       : std_logic;
   signal i_rst       : std_logic;
   signal i_data      : std_logic := '1';
+  signal i_ena       : std_logic := '1';
   signal o_br_sample : std_logic;
   signal o_data      : std_logic_vector(0 to 7);
-
+  signal lala        : std_logic;
+  signal po          : integer;
   constant i_clk_period: time := 10 ns;
 
 begin
@@ -73,6 +76,7 @@ begin
                     port map ( i_clk        => i_clk,
                                i_rst        => i_rst,
                                i_data       => i_data,
+                               i_ena        => i_ena,
                                o_data       => o_data );
 
   stimulus: process
@@ -95,11 +99,11 @@ begin
   end process;
 
  process(o_br_sample)
-     variable v_data : std_logic_vector(0 to 9) ;
-     variable v_cnt0   : integer range 0 to 10 := 9;
-     variable brek_cnt : integer range 0 to 16 := 0;
-     variable v_info_sync : unsigned (0 to 7) := "10101010";
-     variable v_info_data : unsigned (0 to 7) := "00000000";
+     variable v_data      : std_logic_vector(0 to 9) ;
+     variable v_cnt0      : integer range 0 to 10 := 9;
+     variable brek_cnt    : integer range 0 to 16 := 0;
+     variable v_info_sync : unsigned (0 to 7)     := "01010101";
+     variable v_info_data : unsigned (0 to 7)     := "00000000";
  begin
      if(rising_edge(o_br_sample)) then
  
@@ -112,10 +116,12 @@ begin
      elsif (brek_cnt = 15) then
          brek_cnt := 16;
      elsif(v_cnt0 = 9 ) then
-         v_data := '1' & std_logic_vector(v_info_sync) & '0';
-         v_info_data := v_info_data + 1;
+         v_data := '0' & std_logic_vector(v_info_sync) & '1';
+         --v_info_data := v_info_data + 1;
          v_cnt0 := 0;
      else
+         lala <= v_data(v_cnt0);
+         po   <= v_cnt0;
          i_data <= v_data(v_cnt0);  
          v_cnt0 := v_cnt0  +1;   
   
