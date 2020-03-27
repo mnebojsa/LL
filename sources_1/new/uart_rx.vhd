@@ -72,9 +72,9 @@ entity uart_rx is
         G_DATA_WIDTH       : integer   := 8;                  -- Default 8
         G_RST_LEVEVEL      : RST_LEVEL := HL;                 -- HL (High Level), LL(Low Level)
         G_LSB_MSB          : LSB_MSB   := LSB;                -- LSB(Least Significant Bit), MSB(Most Significant Bit)
-        G_USE_BREAK        : boolean   := false;              -- true, false
-        G_USE_OVERRUN      : boolean   := false;              -- true, false
-        G_USE_FRAMEIN      : boolean   := false;              -- true, false
+        G_USE_BREAK        : boolean   := true;              -- true, false
+        G_USE_OVERRUN      : boolean   := true;              -- true, false
+        G_USE_FRAMEIN      : boolean   := true;              -- true, false
         G_USE_PARITY       : U_PARITY  := ODD                -- NONE(Parity not used), ODD(odd parity), EVEN(Even parity)
     );
     port   (
@@ -114,7 +114,6 @@ architecture Behavioral of uart_rx is
 
     -- Siginficant values that would be forvarded to output or used for checks in code
     type TYPE_OUT_REG is record
-        data_in     : std_logic;                                -- Input data registered
         break       : std_logic;                                -- Break signali
         overrun_err : std_logic;                                -- Output Error and Signaling
         framein_err : std_logic;                                -- Output Error and Signaling
@@ -128,7 +127,6 @@ architecture Behavioral of uart_rx is
 
     -- Reset Values for TYPE_OUT_REG type data
     constant TYPE_OUT_REG_RST : TYPE_OUT_REG := (
-        data_in      => '0',
         break        => '0',
         overrun_err  => '0',
         framein_err  => '0',
@@ -155,12 +153,6 @@ architecture Behavioral of uart_rx is
     signal o_reg      : TYPE_OUT_REG;
     -- signal - Values Updated in combinational process that will be registered on the risinf edge of clk
     signal c_to_o_reg : TYPE_OUT_REG;
-    -- signal - registered sample signal(trigers FSM)
-    signal r_sample   : std_logic;
-    -- signal - input i_sample value that will be registered on the rising edge of the clk
-    signal c_sample   : std_logic;
-    signal ssssssss   : std_logic;
-    signal xxxxxxxx   : std_logic;
 
 begin
 
@@ -168,39 +160,46 @@ begin
     s_reset <= '1' when ((G_RST_LEVEVEL = HL and i_rst = '1') or (G_RST_LEVEVEL = LL and i_rst = '0'))
                    else '0';
 
-    c_sample <= i_sample;
-
 -------------------------------------------------------------------------------------------------------
---        Sequential Process
+--        Registring Inputs
 -------------------------------------------------------------------------------------------------------
-reg_sample_proc:
-    process(i_clk)
-    begin
-        if rising_edge(i_clk) then
-            if(s_reset = '1') then
-                r_sample   <= '0';
-            else
-                r_sample   <= c_sample;
-            end if;
-        end if;
-    end process reg_sample_proc;
 
 -- If RST is active assign reset value to i_reg,
--- else, if i_sample rises to '1' register c_to_o_reg value in o_reg
-reg_out_proc:
+-- else, register c_to_i_reg value as i_reg
+reg_in_proc:
     process(i_clk)
     begin
         if rising_edge(i_clk) then
             if(s_reset = '1') then
                 i_reg      <= TYPE_IN_REG_RST;
             else
-                if i_sample = '1' and r_sample = '0' then
-                    o_reg      <= c_to_o_reg;
-                end if;
+                i_reg      <= c_to_i_reg;
             end if;
         end if;
-    end process reg_out_proc;
+    end process reg_in_proc;
 
+
+comb_in_proc:
+    process(i_reg, i_ena, i_rxd, i_data_accepted, i_sample)
+        variable V         : TYPE_IN_REG;
+    begin
+        V          := i_reg;
+
+		  V.sample   := i_sample;
+        V.ena      := i_ena;
+        V.data_acc := i_data_accepted;
+
+        if i_sample = '1' and i_reg.sample = '0' then
+            V.rxd      := i_rxd;
+        end if;
+        -- Assign valuses that should be registered
+        c_to_i_reg <= V;
+    end process comb_in_proc;
+
+
+-------------------------------------------------------------------------------------------------------
+--        Registring Outputs
+-------------------------------------------------------------------------------------------------------
 
 -- If RST is active assign reset value to o_reg,
 -- else, if i_sample rises to '1' register c_to_o_reg value in o_reg
@@ -211,9 +210,7 @@ reg_out_proc:
             if(s_reset = '1') then
                 o_reg      <= TYPE_OUT_REG_RST;
             else
-                if i_sample = '1' and r_sample = '0' then
-                    o_reg      <= c_to_o_reg;
-                end if;
+                o_reg      <= c_to_o_reg;
             end if;
         end if;
     end process reg_out_proc;
@@ -223,39 +220,35 @@ reg_out_proc:
 -------------------------------------------------------------------------------------------------------
 
 comb_out_proc:
-    process(i_ena, i_rxd, i_data_accepted,i_sample , r_sample,
-            o_reg.fsm, o_reg.cnt, o_reg.valid, o_reg.rx_data, o_reg.overrun_err,  o_reg.framein_err,  o_reg.parity_err, o_reg.break)
+    process(i_reg, o_reg, i_sample) --(i_ena, i_rxd, i_data_accepted,i_sample , r_sample,
+             -- o_reg.fsm, o_reg.cnt, o_reg.valid, o_reg.rx_data, o_reg.overrun_err,  o_reg.framein_err,  o_reg.parity_err, o_reg.break)
         variable V         : TYPE_OUT_REG;
         variable v_parity  : std_logic;
     begin
         V         := o_reg;
-        V.data_in := i_rxd;
 
-        if i_ena = '1' then
+        if i_reg.ena = '1' then
+            if i_sample = '0' and i_reg.sample = '1' then
                 case (o_reg.fsm) is
                     -- Default FSM state (signals are in reset value)- waits for start bit
-                    -- When Start bit is detected changes to START_BIT state
+                    -- Sets Counter cnt depending on LSB or MSB data notation expected
                     when IDLE =>
                         V := TYPE_OUT_REG_RST;
-                        if i_rxd = '0' then
-                            V.fsm := START_BIT;
+                        if i_reg.rxd = '0' then
+                            V.fsm := UART_MSG;
                         end if;
-
-                    -- START_BIT state lasts just one data bit
-                    -- Sets Counter cnt depending on LSB or MSB data notation expected
-                    when START_BIT =>
-                        V.fsm := UART_MSG;
                         if (G_LSB_MSB = MSB) then
                             V.cnt := 0;
                         else
                             V.cnt := G_DATA_WIDTH -1;
                         end if;
 
+
                     -- Takes G_DATA_WIDTH bits after START_BIT to be registered
                     -- Next state is - PARITY(if used), or STOP_BIT if PARITY is not used
                     when UART_MSG =>
 
-                        V.rx_data(o_reg.cnt) := o_reg.data_in;
+                        V.rx_data(o_reg.cnt) := i_reg.rxd;
                         
                         if (G_LSB_MSB = MSB) then
                             if(o_reg.cnt = G_DATA_WIDTH -1) then
@@ -272,7 +265,7 @@ comb_out_proc:
                         else
                             if(o_reg.cnt = 0) then
                                 if (G_USE_PARITY = ODD or G_USE_PARITY = EVEN) then
-                                    V.fsm := PARITY;
+                                    V.fsm  := PARITY;
                                 else
                                     V.fsm  := STOP_BIT;
                                 end if;
@@ -288,20 +281,17 @@ comb_out_proc:
                     -- Next State is STOP_BIT
                     when PARITY =>
                         V.fsm        := STOP_BIT;
-                        v_parity     := '0';
                         if (G_USE_PARITY = ODD) then
-                            ssssssss <= f_parity(o_reg.rx_data(G_DATA_WIDTH-1 downto 0));
-                            xxxxxxxx <= i_rxd;
-                            if (o_reg.data_in = f_parity(o_reg.rx_data(G_DATA_WIDTH-1 downto 0))) then
+								    v_parity     := '0';
+                            if (i_reg.rxd = f_parity(o_reg.rx_data(G_DATA_WIDTH-1 downto 0))) then
                                 v_parity := '1';
-                                ssssssss <= '0'; --i_rxd;
                             end if;
                         end if;
 
                         if (G_USE_PARITY = EVEN) then
-                            if (o_reg.data_in = not(f_parity(o_reg.rx_data(G_DATA_WIDTH-1 downto 0)))) then
+                            v_parity     := '0';
+                            if ( i_reg.rxd = not(f_parity(o_reg.rx_data(G_DATA_WIDTH-1 downto 0)))) then
                                 v_parity := '1';
-                                ssssssss <= '0'; --i_rxd;
                             end if;
                         end if;
 
@@ -312,14 +302,18 @@ comb_out_proc:
                     --             if tehere is no errors rises VALID data signal
                     --      BREAK- if all data recieved are Zeros(and STOP bit is Zero) break is detected(if used)
                     when STOP_BIT =>
-                        if (i_rxd = '1') then
+                        if (i_reg.rxd = '1') then
                             V.valid := '1';
-                            if (o_reg.overrun_err  = '1' or o_reg.framein_err = '1' or o_reg.parity_err  = '1') then
+
+                            V.parity_err := v_parity;
+                            v_parity     := '0';
+
+                            if (o_reg.overrun_err  = '1' or o_reg.framein_err = '1' or V.parity_err  = '1') then
                                 V.valid := '0';
                             end if;
 
                             if (G_USE_OVERRUN = true) then
-                                if i_data_accepted = '0' and V.valid = '1' then
+                                if i_reg.data_acc = '0' and V.valid = '1' then
                                     V.overrun_err := '1';
                                 else
                                     V.overrun_err := '0';
@@ -333,6 +327,7 @@ comb_out_proc:
                             elsif(G_USE_BREAK = true) then
                                  if o_reg.rx_data(G_DATA_WIDTH-1 downto 0) = zeros then
                                      V.framein_err := '0';
+												 v_parity      := '0';
                                      V.fsm         := BREAK;
                                  else
                                      V.framein_err := '1';
@@ -340,9 +335,6 @@ comb_out_proc:
                                  end if;
                             end if;
 
-                            if (G_USE_PARITY = ODD or G_USE_PARITY = EVEN) then
-                                V.parity_err := v_parity;
-                            end if;
                         end if;
 
                     -- Rises brake signal on the output if break detected
@@ -350,7 +342,7 @@ comb_out_proc:
                     -- Next state STOP_BIT - when '1' detected on the input
                     when BREAK =>
                         if (G_USE_BREAK = true) then
-                            if (i_rxd = '1') then
+                            if (i_reg.rxd = '1') then
                                 V.valid := '1';
                                 V.fsm   := STOP_BIT;
                                 V.break := '1';
@@ -360,11 +352,7 @@ comb_out_proc:
                                     V.break_cnt  := o_reg.break_cnt +1;
                                     if o_reg.break_cnt >= const_timeout then --timeout
                                         V.framein_err := '1';
-                                        V.fsm         := BREAK;
-                                            if i_rxd = '1' then
-                                                 V.break_cnt  := 0;
-                                                 V.fsm        := IDLE;
-                                            end if;
+                                        V.fsm         := STOP_BIT;
                                     end if;
                                 else
                                     V.framein_err := '0';
@@ -377,6 +365,7 @@ comb_out_proc:
                     when others =>
                         V := TYPE_OUT_REG_RST;
                 end case;
+            end if;
         end if;
 
         -- Assign valuses that should be registered
