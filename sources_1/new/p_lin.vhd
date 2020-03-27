@@ -50,10 +50,14 @@ use ieee.std_logic_1164.all;
 package p_lin is
     --! Used to select High(HL) ot Low(LL) Reset Level for the module
    -- type RST_LEVEL is (HL, LL);
-    type LIN_STD   is (L1_1, L2_0);
+    type LIN_STD   is (L1_0, L2_0);
     --! Used to select High(HL) ot Low(LL) Reset Level for the module
     type RST_LEVEL is (HL, LL);
+    --! Type of frame sent
+    type FRAME_TIPE is (UNCONDITIONAL, EVENT_TRIGGERED, SPORADIC, DIAGNOSTIC);
+    --!
     type COMNCT_SPEED is (CONST_SPEED, DETECT_SPEED);
+
     component LIN_fsm is
         generic(
             G_DATA_LEN    : integer;

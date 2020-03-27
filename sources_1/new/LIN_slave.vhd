@@ -36,7 +36,7 @@ use work.p_lin.all;
 entity LIN_slave is
     generic
     (
-        G_DATA_LEN     : integer := 8;
+        G_DATA_LEN     : integer      := 8;
         G_COMUNICATION : COMNCT_SPEED := DETECT_SPEED -- CONST_SPEED, DETECT_SPEED
     );
     port 
@@ -45,7 +45,7 @@ entity LIN_slave is
         i_rst     : in  std_logic;
         i_data    : in  std_logic;
         i_ena     : in  std_logic;
-        o_data    : out std_logic_vector(0 to 7)
+        o_data    : out std_logic_vector(7 downto 0)
     );
 end LIN_slave;
 
@@ -67,7 +67,7 @@ architecture Behavioral of LIN_slave is
     signal s_framein_err              : std_logic;
     signal s_parity_err               : std_logic;
     signal s_uart_err                 : std_logic;
-    signal s_uart_rx_data             : std_logic_vector(0 to G_DATA_LEN -1);
+    signal s_uart_rx_data             : std_logic_vector(G_DATA_LEN -1 downto 0);
 begin
 
 BRG_inst: baud_rate_gen
@@ -85,7 +85,7 @@ LIN_fsm_inst: LIN_fsm
         generic map(
             G_DATA_LEN    => 8,
             G_RST_LEVEVEL => HL,
-            G_LIN_STANDARD=> L2_0
+            G_LIN_STANDARD=> L1_0
         )
         port map(
             i_clk           => i_clk,               -- Input CLOCK

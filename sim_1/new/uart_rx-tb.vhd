@@ -40,7 +40,7 @@ entity uart_rx_tb is
         G_USE_BREAK        : boolean   := true;
         G_USE_OVERRUN      : boolean   := false;
         G_USE_FRAMEIN      : boolean   := true;
-        G_USE_PARITY       : U_PARITY  := ODD
+        G_USE_PARITY       : U_PARITY  := NONE
       );
 end;
 
@@ -333,7 +333,7 @@ wait for clock_period *2;
       wait for clock_period *2;
       
   
-          i_rxd    <= '0';      -- 0
+          i_rxd    <= '1';      -- 0
       wait for clock_period;
           i_sample <= '1';
       wait for clock_period *3;
@@ -349,7 +349,7 @@ wait for clock_period *2;
   wait for clock_period *2;
   
 
-      i_rxd    <= '0';             --2
+      i_rxd    <= '1';             --2
   wait for clock_period;
       i_sample <= '1';
   wait for clock_period *3;
@@ -357,7 +357,7 @@ wait for clock_period *2;
   wait for clock_period *2;  
   
   
-            i_rxd <= '1';        --3
+            i_rxd <= '0';        --3
 wait for clock_period;
   i_sample <= '1';
 wait for clock_period *3;
@@ -365,7 +365,7 @@ wait for clock_period *3;
 wait for clock_period *2;
 
 
-  i_rxd    <= '0';                --4
+  i_rxd    <= '1';                --4
 wait for clock_period;
   i_sample <= '1';
 wait for clock_period *3;
@@ -373,7 +373,7 @@ wait for clock_period *3;
 wait for clock_period *2;  
 
 
-          i_rxd <= '1';             --5
+          i_rxd <= '0';             --5
       wait for clock_period;
           i_sample <= '1';
       wait for clock_period *3;
@@ -389,7 +389,7 @@ wait for clock_period *2;
       wait for clock_period *2;  
 
 
-          i_rxd <= '1';              --7
+          i_rxd <= '0';              --7
       wait for clock_period;
           i_sample <= '1';
       wait for clock_period *3;

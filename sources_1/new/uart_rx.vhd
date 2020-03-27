@@ -237,7 +237,7 @@ comb_out_proc:
                         if i_reg.rxd = '0' then
                             V.fsm := UART_MSG;
                         end if;
-                        if (G_LSB_MSB = MSB) then
+                        if (G_LSB_MSB = LSB) then
                             V.cnt := 0;
                         else
                             V.cnt := G_DATA_WIDTH -1;
@@ -250,7 +250,7 @@ comb_out_proc:
 
                         V.rx_data(o_reg.cnt) := i_reg.rxd;
                         
-                        if (G_LSB_MSB = MSB) then
+                        if (G_LSB_MSB = LSB) then
                             if(o_reg.cnt = G_DATA_WIDTH -1) then
                                 if (G_USE_PARITY = ODD or G_USE_PARITY = EVEN) then
                                     V.fsm  := PARITY;

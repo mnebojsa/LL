@@ -48,12 +48,15 @@ architecture Behavioral of LIN_fsm is
     type TYPE_LIN_FSM is (IDLE, BREAK, SYNC, PID, DATA, CHECKSUM, LIN_ERR);
 
     type TYPE_FSM_REG is record
-        break    : std_logic;
-        err      : std_logic_vector(3 downto 0);
-        data     : std_logic_vector(0 to G_DATA_LEN -1);
-        valid    : std_logic;
-        fsm      : TYPE_LIN_FSM;
-        cnt      : integer range 0 to 15;
+        break      : std_logic;
+        err        : std_logic_vector(3 downto 0);
+        data       : std_logic_vector(0 to G_DATA_LEN -1);
+        valid      : std_logic;
+        fsm        : TYPE_LIN_FSM;
+        cnt        : integer range 0 to 15;
+        check_sum  : std_logic_vector(7 downto 0);
+        frame_type : FRAME_TIPE; -- (UNCONDITIONAL, EVENT_TRIGGERED, SPORADIC, DIAGNOSTIC)
+        frame_len  : integer range 2 to 8;  -- napravi ovo kao std_logic_vec!!! ili unsigned, a?
     end record;
 
     constant TYPE_FSM_REG_RST : TYPE_FSM_REG := (
@@ -62,7 +65,26 @@ architecture Behavioral of LIN_fsm is
         data         => (others => '0'),
         valid        => '0',
         fsm          => IDLE,
-        cnt          => 0);
+        cnt          => 0,
+        check_sum    => (others => '0'),
+        frame_type   => UNCONDITIONAL,
+        frame_len    => 0);   --UNCONDITIONAL, EVENT_TRIGGERED, SPORADIC, DIAGNOSTIC
+
+
+-----------------------------------------------------------------------------------------------------
+-- napravi strukturu u koju ce se ekstraktovati bitne informacije za upis u memoriju:
+--     *timestamp
+--     *ID
+--     *PORUKA
+--     *CHECKSUM ako treba
+
+
+
+-- razdvoji ulazi i izlaz kao kod uarta
+-- prouci lin specifikaciju
+-- iskomentarisi kod 
+----------------------------------------------------------------------------------------------------
+
 
     signal s_reset              : std_logic;
 
@@ -137,16 +159,30 @@ LIN_fsm_comb_proc:
                 if i_valid_data = '1' and r_lin_fsm.valid = '0' then
                     if f_valid_id(i_rxd) = '1' then
                         if f_check_parity(i_rxd) = true then
-                            V.fsm := DATA;
+                            V.fsm       := DATA;
+                            
+                            if i_rxd(5 downto 4) = "01" then
+                                V.frame_len := 2;
+                            elsif i_rxd(5 downto 4)= "10" then
+                                V.frame_len := 4;
+                            else
+                                V.frame_len := 8;
+                            end if;
+
+                            if(G_LIN_STANDARD = L2_0) then
+                                V.check_sum := r_lin_fsm.check_sum xor i_rxd; 
+                            end if;
                         else
                             V.fsm := LIN_ERR;
                         end if;
                     else
-                        V.fsm := IDLE;
+                        V.fsm := LIN_ERR;
                     end if;
                 end if;
+
             when DATA      =>
                 if i_valid_data = '1' and r_lin_fsm.valid = '0' then
+                      V.check_sum := r_lin_fsm.check_sum xor i_rxd;
                     -- if f_valid_id(i_rxd) = '1' then
                         -- c_lin_fsm.fsm <= DATA;
                     -- else
