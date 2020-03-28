@@ -25,7 +25,6 @@ use IEEE.STD_LOGIC_1164.ALL;
 -- Uncomment the following library declaration if using
 -- arithmetic functions with Signed or Unsigned values
 use IEEE.NUMERIC_STD.ALL;
-
 -- Uncomment the following library declaration if instantiating
 -- any Xilinx leaf cells in this code.
 --library UNISIM;
@@ -269,14 +268,6 @@ wait for clock_period *2;
           o_br_sample <= '0';
       wait for clock_period *2;
 
-
-          i_data <= '1';              -- stop
-      wait for clock_period;
-          o_br_sample <= '1';
-      wait for clock_period *3;
-          o_br_sample <= '0';
-      wait for clock_period *2;
-
 ----------------------------------------------------------------------
           i_data <= '0';        --start
       wait for clock_period;
@@ -367,7 +358,7 @@ wait for clock_period *2;
       
   -----------------------------------------------------------------------------------------------------------
 
-          i_data <= '0';        --start
+          i_data <= '1';        --start
       wait for clock_period;
           o_br_sample <= '1';
       wait for clock_period *3;
@@ -391,7 +382,7 @@ wait for clock_period *2;
   wait for clock_period *2;
   
 
-      i_data    <= '1';             --2
+      i_data    <= '0';             --2
   wait for clock_period;
       o_br_sample <= '1';
   wait for clock_period *3;
@@ -651,6 +642,111 @@ wait for clock_period *2;
       wait for clock_period *3;
           o_br_sample <= '0';
       wait for clock_period *2;
+ 
+-------------------------------------------------------------------------------------------
+          i_data <= '0';        --start
+wait for clock_period;
+o_br_sample <= '1';
+wait for clock_period *3;
+o_br_sample <= '0';
+wait for clock_period *2;
+
+
+i_data    <= '1';      -- 0
+wait for clock_period;
+o_br_sample <= '1';
+wait for clock_period *3;
+o_br_sample <= '0';
+wait for clock_period *2;  
+
+
+ i_data <= '1';       --1
+wait for clock_period;
+o_br_sample <= '1';
+wait for clock_period *3;
+o_br_sample <= '0';
+wait for clock_period *2;
+
+
+i_data    <= '1';             --2
+wait for clock_period;
+o_br_sample <= '1';
+wait for clock_period *3;
+o_br_sample <= '0';
+wait for clock_period *2;  
+
+
+  i_data <= '1';        --3
+wait for clock_period;
+o_br_sample <= '1';
+wait for clock_period *3;
+o_br_sample <= '0';
+wait for clock_period *2;
+
+
+i_data    <= '1';                --4
+wait for clock_period;
+o_br_sample <= '1';
+wait for clock_period *3;
+o_br_sample <= '0';
+wait for clock_period *2;  
+
+
+i_data <= '1';             --5
+wait for clock_period;
+o_br_sample <= '1';
+wait for clock_period *3;
+o_br_sample <= '0';
+wait for clock_period *2;
+
+
+i_data    <= '1';          --6
+wait for clock_period;
+o_br_sample <= '1';
+wait for clock_period *3;
+o_br_sample <= '0';
+wait for clock_period *2;  
+
+
+i_data <= '1';              --7
+wait for clock_period;
+o_br_sample <= '1';
+wait for clock_period *3;
+o_br_sample <= '0';
+wait for clock_period *2;
+
+
+i_data    <= '1';           --add
+wait for clock_period;
+o_br_sample <= '1';
+wait for clock_period *3;
+o_br_sample <= '0';
+wait for clock_period *2;  
+
+
+i_data    <= '1';           --add
+wait for clock_period;
+o_br_sample <= '1';
+wait for clock_period *3;
+o_br_sample <= '0';
+wait for clock_period *2;
+
+i_data    <= '1';           --add
+wait for clock_period;
+o_br_sample <= '1';
+wait for clock_period *3;
+o_br_sample <= '0';
+wait for clock_period *2; 
+
+
+
+    for i in 0 to 10 loop
+      wait for clock_period;
+          o_br_sample <= '1';
+      wait for clock_period *3;
+          o_br_sample <= '0';
+      wait for clock_period *2;
+    end loop;
  
           wait;
   end process;

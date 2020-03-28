@@ -95,7 +95,7 @@ end uart_rx;
 
 architecture Behavioral of uart_rx is
     -- UART FSM states
-    type TYPE_UART_FSM is (IDLE, START_BIT, UART_MSG, PARITY, STOP_BIT, BREAK);
+    type TYPE_UART_FSM is (IDLE, START_BIT, UART_MSG, PARITY, STOP_BIT);
 
     -- Inputs registered
     type TYPE_IN_REG is record
@@ -185,7 +185,7 @@ comb_in_proc:
     begin
         V          := i_reg;
 
-		  V.sample   := i_sample;
+        V.sample   := i_sample;
         V.ena      := i_ena;
         V.data_acc := i_data_accepted;
 
@@ -325,40 +325,25 @@ comb_out_proc:
                                  V.framein_err := '1';
                                  V.fsm         := STOP_BIT;
                             elsif(G_USE_BREAK = true) then
+                            -- Rises brake signal on the output if break detected
+                            -- If lasts too long rises FRAMEING Err (if used) - timeout detection
+                            -- Next state STOP_BIT
                                  if o_reg.rx_data(G_DATA_WIDTH-1 downto 0) = zeros then
                                      V.framein_err := '0';
-												 v_parity      := '0';
-                                     V.fsm         := BREAK;
-                                 else
-                                     V.framein_err := '1';
-                                     V.fsm         := STOP_BIT;
-                                 end if;
-                            end if;
-
-                        end if;
-
-                    -- Rises brake signal on the output if break detected
-                    -- If lasts too long rises FRAMEING Err (if used) - timeout detection
-                    -- Next state STOP_BIT - when '1' detected on the input
-                    when BREAK =>
-                        if (G_USE_BREAK = true) then
-                            if (i_reg.rxd = '1') then
-                                V.valid := '1';
-                                V.fsm   := STOP_BIT;
-                                V.break := '1';
-                            else
-                                V.valid := '0';
-                                if (G_USE_FRAMEIN = true) then
-                                    V.break_cnt  := o_reg.break_cnt +1;
-                                    if o_reg.break_cnt >= const_timeout then --timeout
-                                        V.framein_err := '1';
-                                        V.fsm         := STOP_BIT;
+									 v_parity      := '0';
+									 V.break       := '1';
+                                     V.valid       := '0';
+                                     if (G_USE_FRAMEIN = true) then
+                                         V.break_cnt  := o_reg.break_cnt +1;
+                                         if o_reg.break_cnt >= const_timeout then --timeout
+                                             V.framein_err := '1';
+                                             V.break       := '0';
+                                         end if;
                                     end if;
-                                else
-                                    V.framein_err := '0';
-                                    V.fsm         := BREAK;
-                                end if;
-                                V.break := '0';
+                                 else
+                                     V.framein_err := '1'; 
+                                 end if;
+                                 V.fsm         := STOP_BIT;
                             end if;
                         end if;
 

@@ -54,7 +54,7 @@ package p_lin is
     --! Used to select High(HL) ot Low(LL) Reset Level for the module
     type RST_LEVEL is (HL, LL);
     --! Type of frame sent
-    type FRAME_TIPE is (UNCONDITIONAL, EVENT_TRIGGERED, SPORADIC, DIAGNOSTIC);
+    type FRAME_TIPE is (UNCONDITIONAL, EVENT_TRIGGERED, SPORADIC, DIAGNOSTIC, RESERVERD);
     --!
     type COMNCT_SPEED is (CONST_SPEED, DETECT_SPEED);
 
