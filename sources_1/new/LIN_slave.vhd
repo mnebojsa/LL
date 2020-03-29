@@ -45,7 +45,8 @@ entity LIN_slave is
         i_rst     : in  std_logic;
         i_data    : in  std_logic;
         i_ena     : in  std_logic;
-        o_data    : out std_logic_vector(7 downto 0)
+        o_data    : out std_logic_vector(7 downto 0);
+		  o_valid   : out std_logic
     );
 end LIN_slave;
 
@@ -67,7 +68,9 @@ architecture Behavioral of LIN_slave is
     signal s_framein_err              : std_logic;
     signal s_parity_err               : std_logic;
     signal s_uart_err                 : std_logic;
+    signal s_valid                    : std_logic;
     signal s_uart_rx_data             : std_logic_vector(G_DATA_LEN -1 downto 0);
+    signal s_data                     : std_logic_vector(G_DATA_LEN -1 downto 0);
 begin
 
 BRG_inst: baud_rate_gen
@@ -93,9 +96,9 @@ LIN_fsm_inst: LIN_fsm
             i_valid_data    => s_uart_valid,        -- Input Sample signal - comes from BAUD RATE GENERATOR- signal to sample input
             i_brake         => s_uart_brake,        -- Break Detected
             i_rxd           => s_uart_rx_data,      -- Input Reciveve Data bus Line
-            i_err           => s_uart_err,                       -- Output Error and Signaling
-            o_rx_data       => open,  -- Output Recieved Data
-            o_valid         => open, 
+            i_err           => s_uart_err,          -- Output Error and Signaling
+            o_rx_data       => s_data,              -- Output Recieved Data
+            o_valid         => s_valid, 
             o_to_mit        => open
         );
 
@@ -126,4 +129,7 @@ UART_RX_inst1: uart_rx
         o_rx_data       => s_uart_rx_data       -- Output Recieved Data
     );
 
+
+        o_data    <= s_data;
+		  o_valid   <= s_valid;
 end Behavioral;

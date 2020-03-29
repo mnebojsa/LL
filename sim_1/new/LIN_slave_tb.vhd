@@ -42,11 +42,12 @@ architecture bench of LIN_slave_tb is
       );
       port 
       ( 
-          i_clk     : in  std_logic;
-          i_rst     : in  std_logic;
-          i_data    : in  std_logic;
-          i_ena     : in  std_logic;
-          o_data    : out std_logic_vector(7 downto 0)
+        i_clk     : in  std_logic;
+        i_rst     : in  std_logic;
+        i_data    : in  std_logic;
+        i_ena     : in  std_logic;
+        o_data    : out std_logic_vector(7 downto 0);
+		  o_valid   : out std_logic
       );
   end component;
 
@@ -64,6 +65,7 @@ architecture bench of LIN_slave_tb is
   signal i_ena       : std_logic := '1';
   signal o_br_sample : std_logic;
   signal o_data      : std_logic_vector(7 downto 0);
+  signal o_valid     : std_logic;
   signal lala        : std_logic;
   signal po          : integer;
   constant clock_period: time := 10 ns;
