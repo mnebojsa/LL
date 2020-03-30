@@ -31,7 +31,6 @@ entity LIN_fsm is
         i_brake         : in  std_logic;                      -- Break Detected
         i_rxd           : in  std_logic_vector(G_DATA_LEN -1 downto 0); -- Input Reciveve Data bus Line
         i_err           : in  std_logic;                      -- Output Error and Signaling
-        i_serial_data   : in  std_logic;                      -- Output Error and Signaling
         o_rx_data       : out std_logic_vector(G_DATA_LEN -1 downto 0); -- Output Recieved Data
         o_valid         : out std_logic;
         o_to_mit        : out std_logic
@@ -46,7 +45,6 @@ architecture Behavioral of LIN_fsm is
         brake       : std_logic;                      -- Input Uart Enable Signal
         uart_err    : std_logic;                      -- Input Reciveve Data bus Line
         rxd         : std_logic_vector(G_DATA_LEN -1 downto 0);  -- Input Data Recieved througth UART are stored/used
-        serial_in   : std_logic;
     end record;
 
     -- Reset Values for TYPE_IN_REG type data
@@ -54,28 +52,7 @@ architecture Behavioral of LIN_fsm is
         valid_data  => '0',
         brake       => '0',
         uart_err    => '0',
-        rxd         => (others => '0'),
-        serial_in   => '0');
-
-    type TYPE_CTRL_REG is record
-        err        : std_logic;
-        data       : std_logic_vector(G_DATA_LEN -1 downto 0);
-        lin_valid  : std_logic;
-
-        sync_cnt   : integer range 0 to 8;  -- napravi ovo kao std_logic_vec!!! ili unsigned, a?
-        clk_cnt    : integer;               -- napravi ovo kao std_logic_vec!!! ili unsigned, a?
-    end record;
-
-    constant TYPE_CTRL_REG_RST : TYPE_CTRL_REG := (
-        err          => '0',
-        data         => (others => '0'),
-        lin_valid    => '0',
-
-        sync_cnt     =>  0,
-        clk_cnt      =>  0);   --UNCONDITIONAL, EVENT_TRIGGERED, SPORADIC, DIAGNOSTIC
-
-    signal r_ctrl, c_ctrl : TYPE_CTRL_REG;
-
+        rxd         => (others => '0'));
 
     type TYPE_LIN_FSM is (IDLE, BREAK, SYNC, PID, DATA, CHECKSUM, LIN_ERR);
 
@@ -99,8 +76,8 @@ architecture Behavioral of LIN_fsm is
         fsm          => IDLE,
         check_sum    => (others => '0'),
         frame_type   => UNCONDITIONAL,
-        frame_len    =>  0,
-        frame_cnt    =>  0);   --UNCONDITIONAL, EVENT_TRIGGERED, SPORADIC, DIAGNOSTIC
+        frame_len    => 0,
+        frame_cnt    => 0);   --UNCONDITIONAL, EVENT_TRIGGERED, SPORADIC, DIAGNOSTIC
 
 
 -----------------------------------------------------------------------------------------------------
@@ -161,12 +138,11 @@ comb_in_proc:
     process(r_in, i_rxd, i_brake, i_valid_data, i_err)
         variable V         : TYPE_IN_REG;
     begin
-        V            := r_in;
+        V          := r_in;
 
         V.brake      := i_brake;
         V.valid_data := i_valid_data;
         V.uart_err   := i_err;
-        V.serial_in  := i_serial_data;
 
         if i_valid_data = '1' and r_in.valid_data = '0' then
             V.rxd      := i_rxd;
@@ -174,25 +150,6 @@ comb_in_proc:
         -- Assign valuses that should be registered
         c_in       <= V;
     end process comb_in_proc;
-
-
--------------------------------------------------------------------------------------------------------
---        Control Signals reg
--------------------------------------------------------------------------------------------------------
-
--- If RST is active assign reset value to i_reg,
--- else, register c_to_i_reg value as i_reg
-reg_ctrl_proc:
-    process(i_clk)
-    begin
-        if rising_edge(i_clk) then
-            if(s_reset = '1') then
-                r_ctrl       <= TYPE_CTRL_REG_RST;
-            else
-                r_ctrl       <= c_ctrl;
-            end if;
-        end if;
-    end process reg_ctrl_proc;
 
 
 -------------------------------------------------------------------------------------------------------
@@ -216,48 +173,32 @@ LIN_fsm_syn_proc:
 
 LIN_fsm_comb_proc:
     process(r_lin.break    , r_lin.err , r_lin.data   , r_lin.lin_valid, r_lin.fsm, r_lin.check_sum, r_lin.frame_type, r_lin.frame_len, r_lin.frame_cnt,
-            r_in.valid_data, r_in.brake, r_in.uart_err, r_in.rxd, r_in.serial_in, i_valid_data)
-        variable V       : TYPE_FSM_REG;
-        variable V_ctrl  : TYPE_CTRL_REG;
+            r_in.valid_data, r_in.brake, r_in.uart_err, r_in.rxd, i_valid_data)
+        variable V : TYPE_FSM_REG;
     begin
         V       := r_lin;
 
+        if i_valid_data = '1' and r_in.valid_data = '0' then
             case (r_lin.fsm) is
                 when IDLE      =>
                     V  := TYPE_FSM_REG_RST;
-                    if r_in.serial_in = '0' then
+                    if r_in.brake = '1' then
                         V.fsm := BREAK;
                     end if;
 
                 when BREAK     =>
-                    if r_in.serial_in = '1' then
+                    if r_in.brake = '0' then
                         V.fsm := SYNC;
                     end if;
 
                 when SYNC      =>
-                      if (i_serial_data = '1' and r_in.serial_in = '0') then
-                          V_ctrl.sync_cnt := r_ctrl.sync_cnt +1;
-                      end if;
-
-                      if (r_ctrl.sync_cnt = 1) then
-                          V_ctrl.clk_cnt := r_ctrl.clk_cnt +1;
-                      end if;
-
-                      if (r_ctrl.sync_cnt = 4 and r_in.serial_in = '0') then
-                          V.fsm := PID;
-                      end if;
-
--------------------- implement no sync error !!!
---   vidi da se rijesi na uartu ovo
--- sync na sample malo zakasnjen i counter ukljucen
---                    if r_in.rxd = x"55" then
---                        V.fsm := PID;
---                    else
---                        V.fsm := LIN_ERR;
---                    end if;
+                    if r_in.rxd = x"55" then
+                        V.fsm := PID;
+                    else
+                        V.fsm := LIN_ERR;
+                    end if;
 
                 when PID       =>
-                    if i_valid_data = '1' and r_in.valid_data = '0' then
                     if f_valid_id(r_in.rxd) = '1' then
                         V.fsm   := LIN_ERR;
                         if f_check_parity(r_in.rxd) = true then
@@ -285,34 +226,28 @@ LIN_fsm_comb_proc:
                     else
                         V.fsm   := LIN_ERR;
                     end if;
-                    end if;
 
                 when DATA      =>
-                    if i_valid_data = '1' and r_in.valid_data = '0' then
-                        V.fsm       := DATA;
-                        if (r_lin.frame_cnt >= r_lin.frame_len -1) then
-                            V.fsm   := CHECKSUM;
-                        end if;
-                        V.check_sum := r_lin.check_sum xor r_in.rxd;
-                        V.frame_cnt := r_lin.frame_cnt +1;
+                    V.fsm       := DATA;
+                    if (r_lin.frame_cnt >= r_lin.frame_len -1) then
+                        V.fsm   := CHECKSUM;
                     end if;
+                    V.check_sum := r_lin.check_sum xor r_in.rxd;
+                    V.frame_cnt := r_lin.frame_cnt +1;
 
                 when CHECKSUM  =>
-                    if i_valid_data = '1' and r_in.valid_data = '0' then
-                        if (not(r_lin.check_sum) xor r_in.rxd) = "11111111" then
-                            V.fsm       := IDLE;
-                            V.lin_valid := '1';
-                        else
-                            V.fsm       := LIN_ERR;
-                            V.lin_valid := '0';
-                        end if;
+                    if (not(r_lin.check_sum) xor r_in.rxd) = "11111111" then
+                        V.fsm       := IDLE;
+                        V.lin_valid := '1';
+                    else
+                        V.fsm       := LIN_ERR;
+                        V.lin_valid := '0';
                     end if;
 
                 when LIN_ERR   =>
-                    if i_valid_data = '1' and r_in.valid_data = '0' then
-                        V.fsm := IDLE;
-                    end if;
+                    V.fsm := IDLE;
             end case;
+        end if;
 
         c_lin <= V;
     end process;
