@@ -34,7 +34,8 @@ entity LIN_fsm is
         i_serial_data   : in  std_logic;                      -- Output Error and Signaling
         o_rx_data       : out std_logic_vector(G_DATA_LEN -1 downto 0); -- Output Recieved Data
         o_valid         : out std_logic;
-        o_to_mit        : out std_logic
+        o_to_mit        : out std_logic;
+        o_uart_en       : out std_logic
         );
 end LIN_fsm;
 
@@ -62,20 +63,25 @@ architecture Behavioral of LIN_fsm is
         data       : std_logic_vector(G_DATA_LEN -1 downto 0);
         lin_valid  : std_logic;
 
-        sync_cnt   : integer range 0 to 8;  -- napravi ovo kao std_logic_vec!!! ili unsigned, a?
-        clk_cnt    : integer;               -- napravi ovo kao std_logic_vec!!! ili unsigned, a?
+        sync_cnt        : integer range 0 to 8;  -- napravi ovo kao std_logic_vec!!! ili unsigned, a?
+        clk_cnt0        : integer;               -- napravi ovo kao std_logic_vec!!! ili unsigned, a?
+        clk_cnt1        : integer;               -- napravi ovo kao std_logic_vec!!! ili unsigned, a?
+        clk_cnt2        : integer;               -- napravi ovo kao std_logic_vec!!! ili unsigned, a?
+        clk_cnt_final   : integer;               -- napravi ovo kao std_logic_vec!!! ili unsigned, a?
     end record;
 
     constant TYPE_CTRL_REG_RST : TYPE_CTRL_REG := (
-        err          => '0',
-        data         => (others => '0'),
-        lin_valid    => '0',
+        err           => '0',
+        data          => (others => '0'),
+        lin_valid     => '0',
 
-        sync_cnt     =>  0,
-        clk_cnt      =>  0);   --UNCONDITIONAL, EVENT_TRIGGERED, SPORADIC, DIAGNOSTIC
+        sync_cnt      =>  0,
+        clk_cnt0      =>  0,    --UNCONDITIONAL, EVENT_TRIGGERED, SPORADIC, DIAGNOSTIC
+        clk_cnt1      =>  0,    --UNCONDITIONAL, EVENT_TRIGGERED, SPORADIC, DIAGNOSTIC
+        clk_cnt2      =>  0,    --UNCONDITIONAL, EVENT_TRIGGERED, SPORADIC, DIAGNOSTIC
+        clk_cnt_final =>  0);   --UNCONDITIONAL, EVENT_TRIGGERED, SPORADIC, DIAGNOSTIC
 
     signal r_ctrl, c_ctrl : TYPE_CTRL_REG;
-
 
     type TYPE_LIN_FSM is (IDLE, BREAK, SYNC, PID, DATA, CHECKSUM, LIN_ERR);
 
@@ -128,7 +134,7 @@ architecture Behavioral of LIN_fsm is
 
  -------------------------------------------------------------------------------------------------
 
-
+    signal s_uart_en  : std_logic;
     -- signal - takes High Level if there is active RESET on the module input
     signal s_reset    : std_logic;
 
@@ -228,7 +234,7 @@ LIN_fsm_comb_proc:
                     if r_in.serial_in = '0' then
                         V.fsm := BREAK;
                     end if;
-
+                    s_uart_en <= '0';
                 when BREAK     =>
                     if r_in.serial_in = '1' then
                         V.fsm := SYNC;
@@ -240,11 +246,21 @@ LIN_fsm_comb_proc:
                       end if;
 
                       if (r_ctrl.sync_cnt = 1) then
-                          V_ctrl.clk_cnt := r_ctrl.clk_cnt +1;
+                          V_ctrl.clk_cnt0 := r_ctrl.clk_cnt0 +1;
+                      end if;
+
+                      if (r_ctrl.sync_cnt = 2) then
+                          V_ctrl.clk_cnt1 := r_ctrl.clk_cnt1 +1;
+                      end if;
+
+                      if (r_ctrl.sync_cnt = 3) then
+                          V_ctrl.clk_cnt2 := r_ctrl.clk_cnt2 +1;
                       end if;
 
                       if (r_ctrl.sync_cnt = 4 and r_in.serial_in = '0') then
-                          V.fsm := PID;
+                          V_ctrl.clk_cnt_final := r_ctrl.clk_cnt1;
+                          s_uart_en <= '1';
+                          V.fsm     := PID;
                       end if;
 
 -------------------- implement no sync error !!!
@@ -319,6 +335,6 @@ LIN_fsm_comb_proc:
 
     o_valid   <= r_lin.lin_valid;
     o_rx_data <= r_lin.data;
-
+    o_uart_en <= s_uart_en;
 end Behavioral;
 
