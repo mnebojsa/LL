@@ -51,14 +51,6 @@ architecture bench of LIN_slave_tb is
       );
   end component;
 
-  component baud_rate_gen is
-      generic( G_RST_ACT_LEV : boolean := true;
-               G_PRESCALER   : integer := 5);
-      port   ( i_clk         : in  std_logic;
-               i_rst         : in  std_logic;
-               o_br_sample   : out std_logic);
-  end component;
-
   signal i_clk       : std_logic;
   signal i_rst       : std_logic;
   signal i_data      : std_logic := '1';
@@ -271,7 +263,7 @@ wait for clock_period *2;
       wait for clock_period *2;
 
 ----------------------------------------------------------------------
-          i_data <= '0';        --start
+          i_data <= '0';        --start sync
       wait for clock_period;
           o_br_sample <= '1';
       wait for clock_period *3;
@@ -360,7 +352,7 @@ wait for clock_period *2;
       
   -----------------------------------------------------------------------------------------------------------
 
-          i_data <= '1';        --start
+          i_data <= '0';        --start
       wait for clock_period;
           o_br_sample <= '1';
       wait for clock_period *3;
@@ -384,7 +376,7 @@ wait for clock_period *2;
   wait for clock_period *2;
   
 
-      i_data    <= '0';             --2
+      i_data    <= '1';             --2
   wait for clock_period;
       o_br_sample <= '1';
   wait for clock_period *3;

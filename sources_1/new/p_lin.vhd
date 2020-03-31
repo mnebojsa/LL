@@ -65,15 +65,18 @@ package p_lin is
             G_LIN_STANDARD: LIN_STD
         );
         port   (
-            i_clk           : in  std_logic;                      -- Input CLOCK
-            i_rst           : in  std_logic;                      -- Input Reset for clk
-            i_valid_data    : in  std_logic;                      -- Input Sample signal - comes from BAUD RATE GENERATOR- signal to sample input
-            i_brake         : in  std_logic;                      -- Break Detected
-            i_rxd           : in  std_logic_vector(0 to G_DATA_LEN -1); -- Input Reciveve Data bus Line
-            i_err           : in  std_logic;                      -- Output Error and Signaling
-            o_rx_data       : out std_logic_vector(0 to G_DATA_LEN -1); -- Output Recieved Data
-            o_valid         : out std_logic;
-            o_to_mit        : out std_logic
+        i_clk           : in  std_logic;                      -- Input CLOCK
+        i_rst           : in  std_logic;                      -- Input Reset for clk
+        i_valid_data    : in  std_logic;                      -- Input Sample signal - comes from BAUD RATE GENERATOR- signal to sample input
+        i_brake         : in  std_logic;                      -- Break Detected
+        i_rxd           : in  std_logic_vector(G_DATA_LEN -1 downto 0); -- Input Reciveve Data bus Line
+        i_err           : in  std_logic;                      -- Output Error and Signaling
+        i_serial_data   : in  std_logic;                      -- Output Error and Signaling
+        o_rx_data       : out std_logic_vector(G_DATA_LEN -1 downto 0); -- Output Recieved Data
+        o_valid         : out std_logic;
+        o_to_mit        : out std_logic;
+        o_uart_en       : out std_logic;
+	    o_prescaler     : out integer
         );
    end component LIN_fsm;
 

@@ -233,6 +233,7 @@ comb_out_proc:
                     -- Default FSM state (signals are in reset value)- waits for start bit
                     -- Sets Counter cnt depending on LSB or MSB data notation expected
                     when IDLE =>
+						      v_parity := '0';
                         V := TYPE_OUT_REG_RST;
                         if i_reg.rxd = '0' then
                             V.fsm := UART_MSG;

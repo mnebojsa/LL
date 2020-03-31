@@ -36,8 +36,11 @@ entity baud_rate_gen is
              G_PRESCALER   : integer := 5);
     port   ( i_clk         : in  std_logic;
              i_rst         : in  std_logic;
+				 i_en          : in  std_logic;
+		       i_prescaler   : in  integer;
              o_br_sample   : out std_logic);
 end baud_rate_gen;
+
 
 architecture Behavioral of baud_rate_gen is
     type TYPE_BRG_REG is record
@@ -70,23 +73,25 @@ synchronus_process:
     end process synchronus_process;
 
 comb_process:
-    process(c_brd.brs, c_brd.cnt, r_brd.brs, r_brd.cnt)
+    process(c_brd.brs, c_brd.cnt, r_brd.brs, r_brd.cnt, i_prescaler, i_en)
     begin
         
         c_brd <= r_brd;
 
-        if r_brd.cnt < G_PRESCALER/2 then      
+        if i_en = '1' then
+
+        if r_brd.cnt < i_prescaler/2 then      
             c_brd.brs <= '1';
         else
             c_brd.brs <= '0'; 
         end if;
 
-        if r_brd.cnt < G_PRESCALER then      
+        if r_brd.cnt < i_prescaler then      
             c_brd.cnt <= r_brd.cnt +1;
         else
             c_brd.cnt <= 0; 
         end if;
-        
+        end if;
     end process comb_process;
 
     o_br_sample <= c_brd.brs;

@@ -35,7 +35,8 @@ entity LIN_fsm is
         o_rx_data       : out std_logic_vector(G_DATA_LEN -1 downto 0); -- Output Recieved Data
         o_valid         : out std_logic;
         o_to_mit        : out std_logic;
-        o_uart_en       : out std_logic
+        o_uart_en       : out std_logic;
+		  o_prescaler     : out integer range 0 to 256
         );
 end LIN_fsm;
 
@@ -56,7 +57,7 @@ architecture Behavioral of LIN_fsm is
         brake       => '0',
         uart_err    => '0',
         rxd         => (others => '0'),
-        serial_in   => '0');
+        serial_in   => '1');
 
     type TYPE_CTRL_REG is record
         err        : std_logic;
@@ -64,10 +65,10 @@ architecture Behavioral of LIN_fsm is
         lin_valid  : std_logic;
 
         sync_cnt        : integer range 0 to 8;  -- napravi ovo kao std_logic_vec!!! ili unsigned, a?
-        clk_cnt0        : integer;               -- napravi ovo kao std_logic_vec!!! ili unsigned, a?
-        clk_cnt1        : integer;               -- napravi ovo kao std_logic_vec!!! ili unsigned, a?
-        clk_cnt2        : integer;               -- napravi ovo kao std_logic_vec!!! ili unsigned, a?
-        clk_cnt_final   : integer;               -- napravi ovo kao std_logic_vec!!! ili unsigned, a?
+        clk_cnt0        : integer range 0 to 256;               -- napravi ovo kao std_logic_vec!!! ili unsigned, a?
+        clk_cnt1        : integer range 0 to 256;               -- napravi ovo kao std_logic_vec!!! ili unsigned, a?
+        clk_cnt2        : integer range 0 to 256;               -- napravi ovo kao std_logic_vec!!! ili unsigned, a?
+        clk_cnt_final   : integer range 0 to 256;               -- napravi ovo kao std_logic_vec!!! ili unsigned, a?
     end record;
 
     constant TYPE_CTRL_REG_RST : TYPE_CTRL_REG := (
@@ -164,7 +165,7 @@ reg_in_proc:
 
 
 comb_in_proc:
-    process(r_in, i_rxd, i_brake, i_valid_data, i_err)
+    process(r_in, i_rxd, i_brake, i_valid_data, i_err, i_serial_data)
         variable V         : TYPE_IN_REG;
     begin
         V            := r_in;
@@ -221,8 +222,7 @@ LIN_fsm_syn_proc:
 
 
 LIN_fsm_comb_proc:
-    process(r_lin.break    , r_lin.err , r_lin.data   , r_lin.lin_valid, r_lin.fsm, r_lin.check_sum, r_lin.frame_type, r_lin.frame_len, r_lin.frame_cnt,
-            r_in.valid_data, r_in.brake, r_in.uart_err, r_in.rxd, r_in.serial_in, i_valid_data)
+    process(r_lin, r_in, r_ctrl, i_valid_data, i_serial_data)
         variable V       : TYPE_FSM_REG;
         variable V_ctrl  : TYPE_CTRL_REG;
     begin
@@ -257,7 +257,7 @@ LIN_fsm_comb_proc:
                           V_ctrl.clk_cnt2 := r_ctrl.clk_cnt2 +1;
                       end if;
 
-                      if (r_ctrl.sync_cnt = 4 and r_in.serial_in = '0') then
+                      if (r_ctrl.sync_cnt = 5 and r_in.serial_in = '1') then
                           V_ctrl.clk_cnt_final := r_ctrl.clk_cnt1;
                           s_uart_en <= '1';
                           V.fsm     := PID;
@@ -273,7 +273,7 @@ LIN_fsm_comb_proc:
 --                    end if;
 
                 when PID       =>
-                    if i_valid_data = '1' and r_in.valid_data = '0' then
+                    if i_valid_data = '0' and r_in.valid_data = '1' then
                     if f_valid_id(r_in.rxd) = '1' then
                         V.fsm   := LIN_ERR;
                         if f_check_parity(r_in.rxd) = true then
@@ -315,7 +315,7 @@ LIN_fsm_comb_proc:
 
                 when CHECKSUM  =>
                     if i_valid_data = '1' and r_in.valid_data = '0' then
-                        if (not(r_lin.check_sum) xor r_in.rxd) = "11111111" then
+                        if (not(r_lin.check_sum) xor r_in.rxd) = "00000000" then
                             V.fsm       := IDLE;
                             V.lin_valid := '1';
                         else
@@ -331,10 +331,12 @@ LIN_fsm_comb_proc:
             end case;
 
         c_lin <= V;
+		  c_ctrl <= V_ctrl;
     end process;
 
-    o_valid   <= r_lin.lin_valid;
-    o_rx_data <= r_lin.data;
-    o_uart_en <= s_uart_en;
+    o_valid     <= r_lin.lin_valid;
+    o_rx_data   <= r_lin.data;
+    o_uart_en   <= s_uart_en;
+	 o_prescaler <= r_ctrl.clk_cnt_final;
 end Behavioral;
 

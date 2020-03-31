@@ -57,6 +57,8 @@ architecture Behavioral of LIN_slave is
                  G_PRESCALER   : integer range 0 to 256 := 5);
         port   ( i_clk         : in  std_logic;
                  i_rst         : in  std_logic;
+				     i_en          : in  std_logic;
+		           i_prescaler   : in  integer range 0 to 256;
                  o_br_sample   : out std_logic);
     end component baud_rate_gen;
 
@@ -69,17 +71,20 @@ architecture Behavioral of LIN_slave is
     signal s_parity_err               : std_logic;
     signal s_uart_err                 : std_logic;
     signal s_valid                    : std_logic;
+    signal s_uart_en                  : std_logic;
     signal s_uart_rx_data             : std_logic_vector(G_DATA_LEN -1 downto 0);
     signal s_data                     : std_logic_vector(G_DATA_LEN -1 downto 0);
+    signal s_prescaler                : integer range 0 to 256;
 begin
 
 BRG_inst: baud_rate_gen
     generic map(
-        G_RST_ACT_LEV => true,
-        G_PRESCALER   => 5)
+        G_RST_ACT_LEV => true)
     port map( 
         i_clk       => i_clk,
         i_rst       => i_rst,
+        i_en        => s_uart_en,
+		  i_prescaler => s_prescaler,
         o_br_sample => s_sample
         ); 
 
@@ -97,9 +102,12 @@ LIN_fsm_inst: LIN_fsm
             i_brake         => s_uart_brake,        -- Break Detected
             i_rxd           => s_uart_rx_data,      -- Input Reciveve Data bus Line
             i_err           => s_uart_err,          -- Output Error and Signaling
+            i_serial_data   => i_data,
             o_rx_data       => s_data,              -- Output Recieved Data
             o_valid         => s_valid, 
-            o_to_mit        => open
+            o_uart_en       => s_uart_en,
+            o_to_mit        => open,
+				o_prescaler     => s_prescaler
         );
 
     s_uart_err <= s_overrun_err or s_framein_err or s_parity_err;
@@ -109,7 +117,7 @@ UART_RX_inst1: uart_rx
         G_DATA_WIDTH       => 8,
         G_RST_LEVEVEL      => HL,
         G_LSB_MSB          => LSB,
-        G_USE_BREAK        => true,
+        G_USE_BREAK        => false,
         G_USE_OVERRUN      => false,
         G_USE_FRAMEIN      => true,
         G_USE_PARITY       => NONE
@@ -118,7 +126,7 @@ UART_RX_inst1: uart_rx
         i_clk           => i_clk,               -- Input CLOCK
         i_rst           => i_rst,               -- Input Reset for clk
         i_sample        => s_sample,            -- Input Sample signal - comes from BAUD RATE GENERATOR- signal to sample input
-        i_ena           => i_ena,               -- Input Uart Enable Signal
+        i_ena           => s_uart_en,               -- Input Uart Enable Signal
         i_rxd           => i_data,              -- Input Reciveve Data bus Line
         i_data_accepted => '1',
         o_brake         => s_uart_brake,        -- Break Detected
