@@ -103,6 +103,8 @@ architecture Behavioral of uart_rx is
         ena         : std_logic;                      -- Input Uart Enable Signal
         rxd         : std_logic;                      -- Input Reciveve Data bus Line
         data_acc    : std_logic;                      -- Input Data Recieved througth UART are stored/used
+        sample_1s   : integer range 0 to 16;
+        sample_0s   : integer range 0 to 16;
     end record;
 
     -- Reset Values for TYPE_IN_REG type data
@@ -110,7 +112,9 @@ architecture Behavioral of uart_rx is
         sample       => '0',
         ena          => '0',
         rxd          => '0',
-        data_acc     => '0');
+        data_acc     => '0',
+        sample_1s    =>  0,
+        sample_0s    =>  0);
 
     -- Siginficant values that would be forvarded to output or used for checks in code
     type TYPE_OUT_REG is record
@@ -180,7 +184,9 @@ reg_in_proc:
 
 
 comb_in_proc:
-    process(i_reg, i_ena, i_rxd, i_data_accepted, i_sample)
+--    process(i_reg, i_ena, i_rxd, i_data_accepted, i_sample)
+    process(i_reg.sample, i_reg.ena, i_reg.rxd, i_reg.data_acc, i_reg.sample_1s, i_reg.sample_0s,
+            i_ena, i_rxd, i_data_accepted, i_sample)
         variable V         : TYPE_IN_REG;
     begin
         V          := i_reg;
@@ -189,8 +195,20 @@ comb_in_proc:
         V.ena      := i_ena;
         V.data_acc := i_data_accepted;
 
+        if (i_rxd = '1') then
+            V.sample_1s:= i_reg.sample_1s +1;
+        else
+            V.sample_0s:= i_reg.sample_0s +1;
+        end if;
+
         if i_sample = '1' and i_reg.sample = '0' then
-            V.rxd      := i_rxd;
+            if (i_reg.sample_1s >= i_reg.sample_0s) then
+                V.rxd      := '1';
+            else
+                V.rxd      := '1';
+            end if;
+            V.sample_1s:= 0;
+            V.sample_0s:= 0;
         end if;
         -- Assign valuses that should be registered
         c_to_i_reg <= V;
@@ -220,8 +238,10 @@ reg_out_proc:
 -------------------------------------------------------------------------------------------------------
 
 comb_out_proc:
-    process(i_reg, o_reg, i_sample) --(i_ena, i_rxd, i_data_accepted,i_sample , r_sample,
-             -- o_reg.fsm, o_reg.cnt, o_reg.valid, o_reg.rx_data, o_reg.overrun_err,  o_reg.framein_err,  o_reg.parity_err, o_reg.break)
+--    process(i_reg, o_reg, i_sample)
+    process(i_reg.sample, i_reg.ena, i_reg.rxd, i_reg.data_acc,
+            o_reg.break , o_reg.overrun_err , o_reg.framein_err , o_reg.parity_err , o_reg.rx_data , o_reg.valid , o_reg.fsm , o_reg.cnt , o_reg.break_cnt ,
+            i_sample) 
         variable V         : TYPE_OUT_REG;
         variable v_parity  : std_logic;
     begin

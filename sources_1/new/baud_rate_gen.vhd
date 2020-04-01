@@ -80,13 +80,13 @@ comb_process:
 
         if i_en = '1' then
 
-        if r_brd.cnt < i_prescaler/2 then      
+        if r_brd.cnt < i_prescaler/4 then      
             c_brd.brs <= '1';
         else
             c_brd.brs <= '0'; 
         end if;
 
-        if r_brd.cnt < i_prescaler then      
+        if r_brd.cnt < i_prescaler/2 -1 then      
             c_brd.cnt <= r_brd.cnt +1;
         else
             c_brd.cnt <= 0; 

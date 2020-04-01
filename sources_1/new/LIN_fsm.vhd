@@ -135,6 +135,8 @@ architecture Behavioral of LIN_fsm is
 
  -------------------------------------------------------------------------------------------------
 
+    signal s_out_data : TYPE_LIN_DATA;
+    -- signal - High after sync field when sample counters for UART are set
     signal s_uart_en  : std_logic;
     -- signal - takes High Level if there is active RESET on the module input
     signal s_reset    : std_logic;
@@ -165,7 +167,9 @@ reg_in_proc:
 
 
 comb_in_proc:
-    process(r_in, i_rxd, i_brake, i_valid_data, i_err, i_serial_data)
+--    process(r_in, i_rxd, i_brake, i_valid_data, i_err, i_serial_data)
+    process(r_in.valid_data , r_in.brake , r_in.uart_err , r_in.rxd , r_in.serial_in, 
+            i_rxd, i_brake, i_valid_data, i_err, i_serial_data)
         variable V         : TYPE_IN_REG;
     begin
         V            := r_in;
@@ -222,7 +226,11 @@ LIN_fsm_syn_proc:
 
 
 LIN_fsm_comb_proc:
-    process(r_lin, r_in, r_ctrl, i_valid_data, i_serial_data)
+--    process(r_lin, r_in, r_ctrl, i_valid_data, i_serial_data)
+    process(r_lin.break , r_lin.err , r_lin.data , r_lin.lin_valid , r_lin.fsm , r_lin.check_sum , r_lin.frame_type , r_lin.frame_len , r_lin.frame_cnt ,
+            r_in.valid_data , r_in.brake , r_in.uart_err , r_in.rxd , r_in.serial_in,
+            r_ctrl.err , r_ctrl.data , r_ctrl.lin_valid , r_ctrl.sync_cnt , r_ctrl.clk_cnt0 , r_ctrl.clk_cnt1 , r_ctrl.clk_cnt2 , r_ctrl.clk_cnt_final, 
+            i_valid_data, i_serial_data)
         variable V       : TYPE_FSM_REG;
         variable V_ctrl  : TYPE_CTRL_REG;
     begin
@@ -337,6 +345,6 @@ LIN_fsm_comb_proc:
     o_valid     <= r_lin.lin_valid;
     o_rx_data   <= r_lin.data;
     o_uart_en   <= s_uart_en;
-	 o_prescaler <= r_ctrl.clk_cnt_final;
+	o_prescaler <= r_ctrl.clk_cnt_final;
 end Behavioral;
 

@@ -57,6 +57,37 @@ package p_lin is
     type FRAME_TIPE is (UNCONDITIONAL, EVENT_TRIGGERED, SPORADIC, DIAGNOSTIC, RESERVERD);
     --!
     type COMNCT_SPEED is (CONST_SPEED, DETECT_SPEED);
+                                                      --   31 30 29  28                                    16 15 14 13 12  11                            0
+    type TYPE_LIN_DATA is record                      --    |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
+        word0      : std_logic_vector(31 downto 0);   --   "0  0  0" & DESTINATION_ADDRESS (13)              &"0  0  0  0"&    SIZE           (12)
+        word1      : std_logic_vector(31 downto 0);   --               STATUS_INFORMATION  (16)              &"0  0  0"   DESTINATION_ADDRESS (13)
+        word2      : std_logic_vector(31 downto 0);   --                                  TIME_STAMP LOVER    (32)
+        word3      : std_logic_vector(31 downto 0);   --                                  TIME_STAMP HIGHER   (32)
+        word4      : std_logic_vector(31 downto 0);   --    |LIN_DATA_BYTE   4   |  |LIN_DATA_BYTE   3   |  |LIN_DATA_BYTE   2   |  |LIN_DATA_BYTE   1   |
+        word5      : std_logic_vector(31 downto 0);   --    |LIN_DATA_BYTE   8   |  |LIN_DATA_BYTE   7   |  |LIN_DATA_BYTE   6   |  |LIN_DATA_BYTE   5   |
+        word6      : std_logic_vector(31 downto 0);   --    |    ZEROS           |  |    ZEROS           |  |    CHECKSUM        |  |LIN_DATA_BYTE   N   |
+        word7      : std_logic_vector(31 downto 0);
+        word8      : std_logic_vector(31 downto 0);
+        word9      : std_logic_vector(31 downto 0);
+        word10     : std_logic_vector(31 downto 0);
+        word11     : std_logic_vector(31 downto 0);
+    end record;
+
+    constant TYPE_LIN_DATA_RST : TYPE_LIN_DATA := (
+        word0        => (others => '0'),
+        word1        => (others => '0'),
+        word2        => (others => '0'),
+        word3        => (others => '0'),
+        word4        => (others => '0'),
+        word5        => (others => '0'),
+        word6        => (others => '0'),
+        word7        => (others => '0'),
+        word8        => (others => '0'),
+        word9        => (others => '0'),
+        word10       => (others => '0'),
+        word11       => (others => '0')
+        ); 
+
 
     component LIN_fsm is
         generic(
