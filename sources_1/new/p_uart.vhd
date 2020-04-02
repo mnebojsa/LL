@@ -63,6 +63,7 @@ package p_uart is
         generic(
             G_DATA_WIDTH       : integer;
             G_RST_LEVEVEL      : RST_LEVEL;
+            G_SAMPLE_USED      : boolean;
             G_LSB_MSB          : LSB_MSB;
             G_USE_BREAK        : boolean;
             G_USE_OVERRUN      : boolean;
@@ -74,6 +75,7 @@ package p_uart is
             i_rst           : in  std_logic;                      -- Input Reset for clk
             i_sample        : in  std_logic;                      -- Input Sample signal - comes from BAUD RATE GENERATOR- signal to sample input
             i_ena           : in  std_logic;                      -- Input Uart Enable Signal
+            i_prescaler     : in  integer;
             i_rxd           : in  std_logic;                      -- Input Reciveve Data bus Line
             i_data_accepted : in  std_logic;                      -- Input Data Recieved througth UART are stored/used
             o_brake         : out std_logic;                      -- Break Detected

@@ -69,9 +69,10 @@ use work.p_uart.all;
 
 entity uart_rx is
     generic(
-        G_DATA_WIDTH       : integer   := 8;                  -- Default 8
-        G_RST_LEVEVEL      : RST_LEVEL := HL;                 -- HL (High Level), LL(Low Level)
-        G_LSB_MSB          : LSB_MSB   := LSB;                -- LSB(Least Significant Bit), MSB(Most Significant Bit)
+        G_DATA_WIDTH       : integer   := 8;                 -- Default 8
+        G_RST_LEVEVEL      : RST_LEVEL := HL;                -- HL (High Level), LL(Low Level)
+        G_SAMPLE_USED      : boolean   := false;             -- 
+        G_LSB_MSB          : LSB_MSB   := LSB;               -- LSB(Least Significant Bit), MSB(Most Significant Bit)
         G_USE_BREAK        : boolean   := true;              -- true, false
         G_USE_OVERRUN      : boolean   := true;              -- true, false
         G_USE_FRAMEIN      : boolean   := true;              -- true, false
@@ -82,6 +83,7 @@ entity uart_rx is
         i_rst           : in  std_logic;                      -- Input Reset for clk
         i_sample        : in  std_logic;                      -- Input Sample signal - comes from BAUD RATE GENERATOR- signal to sample input
         i_ena           : in  std_logic;                      -- Input Uart Enable Signal
+        i_prescaler     : in  integer;
         i_rxd           : in  std_logic;                      -- Input Reciveve Data bus Line
         i_data_accepted : in  std_logic;                      -- Input Data Recieved througth UART are stored/used
         o_brake         : out std_logic;                      -- Break Detected
@@ -94,6 +96,20 @@ entity uart_rx is
 end uart_rx;
 
 architecture Behavioral of uart_rx is
+    type TYPE_BRG_REG is record
+        brs        : std_logic;
+        cnt        : integer range 0 to 15;
+        sample_cnt : integer range 0 to 256;
+    end record;
+
+    constant TYPE_BRG_REG_RST : TYPE_BRG_REG := (
+        brs        => '0',
+        cnt        =>  0,
+        sample_cnt =>  0);
+
+signal r_brd, c_brd       : TYPE_BRG_REG;
+
+
     -- UART FSM states
     type TYPE_UART_FSM is (IDLE, START_BIT, UART_MSG, PARITY, STOP_BIT);
 
@@ -182,7 +198,8 @@ reg_in_proc:
         end if;
     end process reg_in_proc;
 
-
+i_sample_used:
+if G_SAMPLE_USED = true generate
 comb_in_proc:
 --    process(i_reg, i_ena, i_rxd, i_data_accepted, i_sample)
     process(i_reg.sample, i_reg.ena, i_reg.rxd, i_reg.data_acc, i_reg.sample_1s, i_reg.sample_0s,
@@ -213,7 +230,43 @@ comb_in_proc:
         -- Assign valuses that should be registered
         c_to_i_reg <= V;
     end process comb_in_proc;
+end generate;
 
+i_sample_not_used:
+if G_SAMPLE_USED = false generate
+comb_in_proc:
+--    process(i_reg, i_ena, i_rxd, i_data_accepted, i_sample)
+    process(i_reg.sample, i_reg.ena, i_reg.rxd, i_reg.data_acc, i_reg.sample_1s, i_reg.sample_0s,
+            i_ena, i_rxd, i_data_accepted, r_brd.brs, r_brd.cnt, i_prescaler)
+        variable V         : TYPE_IN_REG;
+    begin
+        V          := i_reg;
+
+        V.sample   := r_brd.brs;
+        V.ena      := i_ena;
+        V.data_acc := i_data_accepted;
+
+        if V.sample = '1' and i_reg.sample = '0' then
+            if (i_rxd = '1') then
+                V.sample_1s:= i_reg.sample_1s +1;
+            else
+                V.sample_0s:= i_reg.sample_0s +1;
+            end if;
+         end if;
+
+         if r_brd.cnt = i_prescaler/2 -2 then
+            if (i_reg.sample_1s >= i_reg.sample_0s) then
+                V.rxd      := '1';
+            else
+                V.rxd      := '0';
+            end if;
+            V.sample_1s:= 0;
+            V.sample_0s:= 0;
+        end if;
+        -- Assign valuses that should be registered
+        c_to_i_reg <= V;
+    end process comb_in_proc;
+end generate;
 
 -------------------------------------------------------------------------------------------------------
 --        Registring Outputs
@@ -253,7 +306,7 @@ comb_out_proc:
                     -- Default FSM state (signals are in reset value)- waits for start bit
                     -- Sets Counter cnt depending on LSB or MSB data notation expected
                     when IDLE =>
-						      v_parity := '0';
+						v_parity := '0';
                         V := TYPE_OUT_REG_RST;
                         if i_reg.rxd = '0' then
                             V.fsm := UART_MSG;
@@ -387,5 +440,57 @@ comb_out_proc:
     o_parity_err    <= o_reg.parity_err;                 -- Output Error and Signaling
     o_rx_data       <= o_reg.rx_data;                    -- Output Recieved Data
     o_valid         <= o_reg.valid;                      -- Output Data Valid
+
+-------------------------------------------------------------------------------------------------------
+--                             BRG
+-------------------------------------------------------------------------------------------------------
+
+genearate_sample_gen:
+if G_SAMPLE_USED = false generate
+
+synchronus_BRG_process:
+    process(i_clk)
+    begin
+        if (rising_edge(i_clk)) then
+            if(s_reset = '1') then
+                r_brd <= TYPE_BRG_REG_RST;
+            else
+                r_brd <= c_brd;
+            end if;
+        end if;
+    end process synchronus_BRG_process;
+
+comb_process:
+    process(r_brd.brs, r_brd.cnt, r_brd.sample_cnt, i_prescaler, i_ena)
+        variable V : TYPE_BRG_REG;
+    begin
+        
+        V := r_brd;
+
+        V.sample_cnt := (i_prescaler/2) / 13;
+        if ((i_prescaler/2) / 13) = 0 then
+            V.sample_cnt := (2);    
+        end if;
+
+        if i_ena = '1' then
+
+        if r_brd.sample_cnt /= 0 then
+            if (r_brd.cnt mod r_brd.sample_cnt = 0) then      
+                V.brs := '1';
+            else
+                V.brs := '0'; 
+            end if;
+         end if;
+
+            if r_brd.cnt < i_prescaler/2 -1 then      
+                V.cnt := r_brd.cnt +1;
+            else
+                V.cnt := 0; 
+            end if;
+        end if;
+        
+        c_brd <= V;
+    end process comb_process;
+end generate;
 
 end Behavioral;
