@@ -7,7 +7,8 @@ use work.p_uart.all;
 entity data_sample_tb is
     generic(
        G_RST_LEVEVEL      : RST_LEVEL := HL;
-       G_SAMPLE_USED      : boolean   := false
+       G_SAMPLE_USED      : boolean   := false;
+		 G_SAMPLE_PER_BIT   : positive  := 16
        );
 end;
 
@@ -16,7 +17,8 @@ architecture bench of data_sample_tb is
   component data_sample
       generic(
           G_RST_LEVEVEL      : RST_LEVEL;
-          G_SAMPLE_USED      : boolean
+          G_SAMPLE_USED      : boolean;
+			 G_SAMPLE_PER_BIT   : positive
           );
       port   (
           i_clk           : in  std_logic;
@@ -44,8 +46,9 @@ architecture bench of data_sample_tb is
 begin
 
   -- Insert values for generic parameters !!
-  uut: data_sample generic map ( G_RST_LEVEVEL => G_RST_LEVEVEL,
-                                 G_SAMPLE_USED => G_SAMPLE_USED )
+  uut: data_sample generic map ( G_RST_LEVEVEL    => G_RST_LEVEVEL,
+                                 G_SAMPLE_USED    => G_SAMPLE_USED,
+                                 G_SAMPLE_PER_BIT => G_SAMPLE_PER_BIT									)
                       port map ( i_clk         => i_clk,
                                  i_rst         => i_rst,
                                  i_sample      => i_sample,
@@ -72,7 +75,7 @@ begin
       wait for clock_period *2;
     end loop;
 
-      i_ena    <= '1';
+--      i_ena    <= '1';
 
 
     for i in 0 to 3 loop
@@ -84,6 +87,7 @@ begin
     end loop;
 
 ----------------------------------------------------------------------
+      i_ena    <= '1';
           i_rxd <= '0';        --start
       wait for clock_period * 120;
            

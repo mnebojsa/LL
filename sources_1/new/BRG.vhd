@@ -35,7 +35,8 @@ use work.p_uart.all;
 entity BRG is
     generic(
         G_RST_LEVEVEL      : RST_LEVEL := HL;                -- HL (High Level), LL(Low Level)
-        G_SAMPLE_USED      : boolean   := false               --
+        G_SAMPLE_USED      : boolean   := false;             --
+        G_SAMPLE_PER_BIT   : positive  := 13
         );
     port   (
         i_clk              : in  std_logic;                      -- Input CLOCK
@@ -115,9 +116,9 @@ if G_SAMPLE_USED = false generate
 
             V := r_brd;
 
-            V.sample_cnt := (i_prescaler/2) / 13;
-            if ((i_prescaler/2) / 13) = 0 then
-                V.sample_cnt := (2);
+            V.sample_cnt := (i_prescaler/2) / G_SAMPLE_PER_BIT;
+            if ((i_prescaler/2) / G_SAMPLE_PER_BIT) = 0 then
+                V.sample_cnt := i_prescaler/4;
             end if;
 
             if i_ena = '1' then

@@ -34,8 +34,9 @@ use work.p_uart.all;
 
 entity data_sample is
     generic(
-        G_RST_LEVEVEL      : RST_LEVEL := HL;                    -- HL (High Level), LL(Low Level)
-        G_SAMPLE_USED      : boolean   := false                  -- 
+        G_RST_LEVEVEL      : RST_LEVEL     := HL;        -- HL (High Level), LL(Low Level)
+        G_SAMPLE_USED      : boolean       := false;     --
+		  G_SAMPLE_PER_BIT   : positive      := 13
         );
     port   (
         i_clk              : in  std_logic;                      -- Input CLOCK
@@ -54,7 +55,8 @@ architecture Behavioral of data_sample is
 component BRG
     generic(
         G_RST_LEVEVEL      : RST_LEVEL;                -- HL (High Level), LL(Low Level)
-        G_SAMPLE_USED      : boolean                   -- 
+        G_SAMPLE_USED      : boolean;                  -- 
+		  G_SAMPLE_PER_BIT   : positive
         );
     port   (
         i_clk              : in  std_logic;                      -- Input CLOCK
@@ -81,7 +83,7 @@ end component BRG;
     constant TYPE_IN_REG_RST : TYPE_IN_REG := (
         sample       => '0',
         ena          => '0',
-        rxd          => '0',
+        rxd          => '1',
         valid        => '0',
         sample_1s    =>  0,
         sample_0s    =>  0);
@@ -108,8 +110,9 @@ begin
 -------------------------------------------------------------------------------------------------------
 BRG_inst_0: BRG
     generic map(
-        G_RST_LEVEVEL => G_RST_LEVEVEL,               -- HL (High Level), LL(Low Level)
-        G_SAMPLE_USED => G_SAMPLE_USED                   -- 
+        G_RST_LEVEVEL    => G_RST_LEVEVEL,          -- HL (High Level), LL(Low Level)
+        G_SAMPLE_USED    => G_SAMPLE_USED,          -- 
+		  G_SAMPLE_PER_BIT => G_SAMPLE_PER_BIT
         )
     port map(
         i_clk       => i_clk,                   -- Input CLOCK
@@ -160,7 +163,7 @@ comb_in_proc:
             end if;
         end if;
 
-        if (i_reg.sample_1s + i_reg.sample_0s = 12 ) then
+        if (i_reg.sample_1s + i_reg.sample_0s = G_SAMPLE_PER_BIT) then
             if (i_reg.sample_1s >= i_reg.sample_0s) then
                 V.rxd      := '1';
             else

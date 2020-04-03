@@ -61,21 +61,20 @@ package p_uart is
     --!UART_RX component
     component uart_rx is
         generic(
-            G_DATA_WIDTH       : integer;
-            G_RST_LEVEVEL      : RST_LEVEL;
-            G_SAMPLE_USED      : boolean;
-            G_LSB_MSB          : LSB_MSB;
-            G_USE_BREAK        : boolean;
-            G_USE_OVERRUN      : boolean;
-            G_USE_FRAMEIN      : boolean;
-            G_USE_PARITY       : U_PARITY
-        );
+            G_DATA_WIDTH       : integer   := 8;                 -- Default 8
+            G_RST_LEVEVEL      : RST_LEVEL := HL;                -- HL (High Level), LL(Low Level)
+            G_SAMPLE_PER_BIT   : positive  := 13;
+            G_LSB_MSB          : LSB_MSB   := LSB;               -- LSB(Least Significant Bit), MSB(Most Significant Bit)
+            G_USE_BREAK        : boolean   := true;              -- true, false
+            G_USE_OVERRUN      : boolean   := true;              -- true, false
+            G_USE_FRAMEIN      : boolean   := true;              -- true, false
+            G_USE_PARITY       : U_PARITY  := ODD                -- NONE(Parity not used), ODD(odd parity), EVEN(Even parity)
+            );
         port   (
             i_clk           : in  std_logic;                      -- Input CLOCK
             i_rst           : in  std_logic;                      -- Input Reset for clk
-            i_sample        : in  std_logic;                      -- Input Sample signal - comes from BAUD RATE GENERATOR- signal to sample input
             i_ena           : in  std_logic;                      -- Input Uart Enable Signal
-            i_prescaler     : in  integer;
+            i_prescaler     : in  integer range 0 to 256;
             i_rxd           : in  std_logic;                      -- Input Reciveve Data bus Line
             i_data_accepted : in  std_logic;                      -- Input Data Recieved througth UART are stored/used
             o_brake         : out std_logic;                      -- Break Detected
@@ -84,7 +83,7 @@ package p_uart is
             o_parity_err    : out std_logic;                      -- Output Error and Signaling
             o_rx_data       : out std_logic_vector(G_DATA_WIDTH-1 downto 0); -- Output Recieved Data
             o_valid         : out std_logic
-        );
+            );
     end component;
 
 end package;

@@ -36,8 +36,9 @@ entity uart_rx_tb is
       generic(
         G_DATA_WIDTH       : integer   := 8;
         G_RST_LEVEVEL      : RST_LEVEL := HL;
+		  G_SAMPLE_PER_BIT   : positive  := 13;
         G_LSB_MSB          : LSB_MSB   := LSB;
-        G_USE_BREAK        : boolean   := true;
+        G_USE_BREAK        : boolean   := false;
         G_USE_OVERRUN      : boolean   := false;
         G_USE_FRAMEIN      : boolean   := true;
         G_USE_PARITY       : U_PARITY  := NONE
@@ -48,10 +49,9 @@ architecture bench of uart_rx_tb is
 
   signal i_clk         : std_logic;
   signal i_rst         : std_logic;
-  signal i_sample      : std_logic;
   signal i_ena         : std_logic;
   signal i_rxd         : std_logic;
-
+  signal i_prescaler   : integer range 0 to 256;
   signal o_brake       : std_logic;
   signal o_overrun_err : std_logic;
   signal o_framein_err : std_logic;
@@ -71,6 +71,7 @@ begin
       generic map(
 		    G_DATA_WIDTH     => 8,
 		    G_RST_LEVEVEL    => G_RST_LEVEVEL,
+			 G_SAMPLE_PER_BIT => G_SAMPLE_PER_BIT,
 		    G_LSB_MSB        => G_LSB_MSB,
 		    G_USE_BREAK      => G_USE_BREAK,
 		    G_USE_OVERRUN    => G_USE_OVERRUN,
@@ -79,9 +80,9 @@ begin
       port map (
 		    i_clk          => i_clk,
 		    i_rst          => i_rst,
-		    i_sample       => i_sample,
 		    i_ena          => i_ena,
 		    i_rxd          => i_rxd,
+			 i_prescaler    => i_prescaler,
 		    i_data_accepted=> '1',
 		    o_brake        => o_brake,
 		    o_overrun_err  => o_overrun_err, --o_overrun_err,
@@ -172,561 +173,293 @@ begin
 
   reset_proc: process
   begin
+      i_prescaler <= 250;
       i_rst    <= '1';
       i_ena    <= '0';
+          wait for clock_period * 50;
+      i_ena    <= '1';
       i_rxd    <= '1';
           wait for clock_period * 50;
       i_rst    <= '0';
           wait for clock_period * 50;
 
-    for i in 0 to 3 loop
-      wait for clock_period;
-          i_sample <= '1';
-      wait for clock_period *3;
-          i_sample <= '0';
-      wait for clock_period *2;
-    end loop;
 
       i_ena    <= '1';
 
 
     for i in 0 to 3 loop
-      wait for clock_period;
-          i_sample <= '1';
+      wait for clock_period * 120;
+           
       wait for clock_period *3;
-          i_sample <= '0';
+           
       wait for clock_period *2;
     end loop;
 
 ----------------------------------------------------------------------
+
           i_rxd <= '0';        --start
-      wait for clock_period;
-          i_sample <= '1';
+      wait for clock_period * 120;
+           
       wait for clock_period *3;
-          i_sample <= '0';
+           
       wait for clock_period *2;
       
   
-          i_rxd    <= '0';      -- 0
-      wait for clock_period;
-          i_sample <= '1';
+          i_rxd    <= '1';      -- 0
+      wait for clock_period * 120;
+           
       wait for clock_period *3;
-          i_sample <= '0';
+           
       wait for clock_period *2;  
  
  
            i_rxd <= '0';       --1
-  wait for clock_period;
-      i_sample <= '1';
+  wait for clock_period * 120;
+       
   wait for clock_period *3;
-      i_sample <= '0';
+       
   wait for clock_period *2;
   
 
-      i_rxd    <= '0';             --2
-  wait for clock_period;
-      i_sample <= '1';
+      i_rxd    <= '1';             --2
+  wait for clock_period * 120;
+       
   wait for clock_period *3;
-      i_sample <= '0';
+       
   wait for clock_period *2;  
   
   
             i_rxd <= '0';        --3
-wait for clock_period;
-  i_sample <= '1';
+wait for clock_period * 120;
+   
 wait for clock_period *3;
-  i_sample <= '0';
+   
 wait for clock_period *2;
 
 
-  i_rxd    <= '0';                --4
-wait for clock_period;
-  i_sample <= '1';
+  i_rxd    <= '1';                --4
+wait for clock_period * 120;
+   
 wait for clock_period *3;
-  i_sample <= '0';
+   
 wait for clock_period *2;  
 
 
           i_rxd <= '0';             --5
-      wait for clock_period;
-          i_sample <= '1';
+      wait for clock_period * 120;
+           
       wait for clock_period *3;
-          i_sample <= '0';
+           
       wait for clock_period *2;
       
   
-          i_rxd    <= '0';          --6
-      wait for clock_period;
-          i_sample <= '1';
+          i_rxd    <= '1';          --6
+      wait for clock_period * 120;
+           
       wait for clock_period *3;
-          i_sample <= '0';
+           
       wait for clock_period *2;  
 
 
           i_rxd <= '0';              --7
-      wait for clock_period;
-          i_sample <= '1';
+      wait for clock_period * 120;
+           
       wait for clock_period *3;
-          i_sample <= '0';
+           
       wait for clock_period *2;
       
   
-          i_rxd    <= '0';           --add
-      wait for clock_period;
-          i_sample <= '1';
+          i_rxd    <= '1';           --add
+      wait for clock_period * 120;
+           
       wait for clock_period *3;
-          i_sample <= '0';
+           
       wait for clock_period *2;  
 
 
-          i_rxd    <= '0';           --add
-      wait for clock_period;
-          i_sample <= '1';
+          i_rxd    <= '1';           --add
+      wait for clock_period * 120;
+           
       wait for clock_period *3;
-          i_sample <= '0';
+           
       wait for clock_period *2;
       
-          i_rxd    <= '0';           --add
-     wait for clock_period;
-          i_sample <= '1';
+          i_rxd    <= '1';           --add
+     wait for clock_period * 120;
+           
      wait for clock_period *3;
-          i_sample <= '0';
+           
      wait for clock_period *2;
 
-
-          i_rxd <= '1';              -- stop
-      wait for clock_period;
-          i_sample <= '1';
+    -- Put test bench stimulus code here
+    for i in 0 to 3 loop
+      wait for clock_period * 120;
+           
       wait for clock_period *3;
-          i_sample <= '0';
+           
       wait for clock_period *2;
+    end loop;
 
-
-          i_rxd <= '1';              -- stop
-      wait for clock_period;
-          i_sample <= '1';
-      wait for clock_period *3;
-          i_sample <= '0';
-      wait for clock_period *2;
-
-
-          i_rxd <= '1';              -- stop
-      wait for clock_period;
-          i_sample <= '1';
-      wait for clock_period *3;
-          i_sample <= '0';
-      wait for clock_period *2;
-
-
-          i_rxd <= '1';              -- stop
-      wait for clock_period;
-          i_sample <= '1';
-      wait for clock_period *3;
-          i_sample <= '0';
-      wait for clock_period *2;
 ----------------------------------------------------------------------
+
           i_rxd <= '0';        --start
-      wait for clock_period;
-          i_sample <= '1';
+      wait for clock_period * 120;
+           
       wait for clock_period *3;
-          i_sample <= '0';
+           
+      wait for clock_period *2; 
+ 
+ 
+           i_rxd <= '0';       --0
+  wait for clock_period * 120;
+       
+  wait for clock_period *3;
+       
+  wait for clock_period *2;
+  
+
+      i_rxd    <= '1';             --1
+  wait for clock_period * 120;
+       
+  wait for clock_period *3;
+       
+  wait for clock_period *2;  
+  
+  
+            i_rxd <= '0';        --2
+wait for clock_period * 120;
+   
+wait for clock_period *3;
+   
+wait for clock_period *2;
+
+
+  i_rxd    <= '1';                --3
+wait for clock_period * 120;
+   
+wait for clock_period *3;
+   
+wait for clock_period *2;  
+
+
+          i_rxd <= '0';             --4
+      wait for clock_period * 120;
+           
+      wait for clock_period *3;
+           
+      wait for clock_period *2;
+      
+  
+          i_rxd    <= '1';          --5
+      wait for clock_period * 120;
+           
+      wait for clock_period *3;
+           
+      wait for clock_period *2;  
+
+
+          i_rxd <= '0';              --6
+      wait for clock_period * 120;
+           
+      wait for clock_period *3;
+           
+      wait for clock_period *2;
+      
+  
+          i_rxd    <= '1';           --7  
+      wait for clock_period * 120;
+           
+      wait for clock_period *3;
+           
+      wait for clock_period *2;  
+
+
+          i_rxd    <= '1';           --stop
+      wait for clock_period * 120;
+           
+      wait for clock_period *3;
+           
+      wait for clock_period *2;
+      
+-----------------------------------------------------
+          i_rxd <= '0';        --start
+      wait for clock_period * 120;
+           
+      wait for clock_period *3;
+           
       wait for clock_period *2;
       
   
           i_rxd    <= '1';      -- 0
-      wait for clock_period;
-          i_sample <= '1';
+      wait for clock_period * 120;
+           
       wait for clock_period *3;
-          i_sample <= '0';
+           
       wait for clock_period *2;  
  
  
            i_rxd <= '0';       --1
-  wait for clock_period;
-      i_sample <= '1';
+  wait for clock_period * 120;
+       
   wait for clock_period *3;
-      i_sample <= '0';
+       
   wait for clock_period *2;
   
 
       i_rxd    <= '1';             --2
-  wait for clock_period;
-      i_sample <= '1';
+  wait for clock_period * 120;
+       
   wait for clock_period *3;
-      i_sample <= '0';
+       
   wait for clock_period *2;  
   
   
             i_rxd <= '0';        --3
-wait for clock_period;
-  i_sample <= '1';
+wait for clock_period * 120;
+   
 wait for clock_period *3;
-  i_sample <= '0';
+   
 wait for clock_period *2;
 
 
   i_rxd    <= '1';                --4
-wait for clock_period;
-  i_sample <= '1';
+wait for clock_period * 120;
+   
 wait for clock_period *3;
-  i_sample <= '0';
+   
 wait for clock_period *2;  
 
 
           i_rxd <= '0';             --5
-      wait for clock_period;
-          i_sample <= '1';
+      wait for clock_period * 120;
+           
       wait for clock_period *3;
-          i_sample <= '0';
+           
       wait for clock_period *2;
       
   
           i_rxd    <= '1';          --6
-      wait for clock_period;
-          i_sample <= '1';
+      wait for clock_period * 120;
+           
       wait for clock_period *3;
-          i_sample <= '0';
+           
       wait for clock_period *2;  
 
 
           i_rxd <= '0';              --7
-      wait for clock_period;
-          i_sample <= '1';
+      wait for clock_period * 120;
+           
       wait for clock_period *3;
-          i_sample <= '0';
+           
       wait for clock_period *2;
       
   
           i_rxd    <= '1';           --add
-      wait for clock_period;
-          i_sample <= '1';
+      wait for clock_period * 120;
+           
       wait for clock_period *3;
-          i_sample <= '0';
+           
       wait for clock_period *2;  
-
-
-          i_rxd    <= '1';           --add
-      wait for clock_period;
-          i_sample <= '1';
-      wait for clock_period *3;
-          i_sample <= '0';
-      wait for clock_period *2;
-      
-          i_rxd    <= '1';           --add
-     wait for clock_period;
-          i_sample <= '1';
-     wait for clock_period *3;
-          i_sample <= '0';
-     wait for clock_period *2;
-
-
-          i_rxd <= '1';              -- stop
-      wait for clock_period;
-          i_sample <= '1';
-      wait for clock_period *3;
-          i_sample <= '0';
-      wait for clock_period *2;
-      
-  
-          i_rxd    <= '1';
-      wait for clock_period;
-          i_sample <= '1';
-      wait for clock_period *3;
-          i_sample <= '0';
-      wait for clock_period *2;  
- 
- 
-           i_rxd    <= '1';           --add
-  wait for clock_period;
-      i_sample <= '1';
-  wait for clock_period *3;
-      i_sample <= '0';
-  wait for clock_period *2;  
-
-
-          i_rxd <= '0';        --start
-      wait for clock_period;
-          i_sample <= '1';
-      wait for clock_period *3;
-          i_sample <= '0';
-      wait for clock_period *2;
-      
-  
-          i_rxd    <= '0';      -- 0
-      wait for clock_period;
-          i_sample <= '1';
-      wait for clock_period *3;
-          i_sample <= '0';
-      wait for clock_period *2;  
- 
- 
-           i_rxd <= '0';       --1
-  wait for clock_period;
-      i_sample <= '1';
-  wait for clock_period *3;
-      i_sample <= '0';
-  wait for clock_period *2;
-  
-
-      i_rxd    <= '0';             --2
-  wait for clock_period;
-      i_sample <= '1';
-  wait for clock_period *3;
-      i_sample <= '0';
-  wait for clock_period *2;  
-  
-  
-            i_rxd <= '1';        --3
-wait for clock_period;
-  i_sample <= '1';
-wait for clock_period *3;
-  i_sample <= '0';
-wait for clock_period *2;
-
-
-  i_rxd    <= '0';                --4
-wait for clock_period;
-  i_sample <= '1';
-wait for clock_period *3;
-  i_sample <= '0';
-wait for clock_period *2;  
-
-
-          i_rxd <= '1';             --5
-      wait for clock_period;
-          i_sample <= '1';
-      wait for clock_period *3;
-          i_sample <= '0';
-      wait for clock_period *2;
-      
-  
-          i_rxd    <= '1';          --6
-      wait for clock_period;
-          i_sample <= '1';
-      wait for clock_period *3;
-          i_sample <= '0';
-      wait for clock_period *2;  
-
-
-          i_rxd <= '1';              --7
-      wait for clock_period;
-          i_sample <= '1';
-      wait for clock_period *3;
-          i_sample <= '0';
-      wait for clock_period *2;
-      
-  
-          i_rxd    <= '0';           --add
-      wait for clock_period;
-          i_sample <= '1';
-      wait for clock_period *3;
-          i_sample <= '0';
-      wait for clock_period *2;  
-
-
-          i_rxd    <= '1';           --add
-      wait for clock_period;
-          i_sample <= '1';
-      wait for clock_period *3;
-          i_sample <= '0';
-      wait for clock_period *2;
-
-
-          i_rxd <= '0';        --start
-      wait for clock_period;
-          i_sample <= '1';
-      wait for clock_period *3;
-          i_sample <= '0';
-      wait for clock_period *2;
-      
-  
-          i_rxd    <= '1';      -- 0
-      wait for clock_period;
-          i_sample <= '1';
-      wait for clock_period *3;
-          i_sample <= '0';
-      wait for clock_period *2;  
- 
- 
-           i_rxd <= '0';       --1
-  wait for clock_period;
-      i_sample <= '1';
-  wait for clock_period *3;
-      i_sample <= '0';
-  wait for clock_period *2;
-  
-
-      i_rxd    <= '1';             --2
-  wait for clock_period;
-      i_sample <= '1';
-  wait for clock_period *3;
-      i_sample <= '0';
-  wait for clock_period *2;  
-  
-  
-            i_rxd <= '0';        --3
-wait for clock_period;
-  i_sample <= '1';
-wait for clock_period *3;
-  i_sample <= '0';
-wait for clock_period *2;
-
-
-  i_rxd    <= '1';                --4
-wait for clock_period;
-  i_sample <= '1';
-wait for clock_period *3;
-  i_sample <= '0';
-wait for clock_period *2;  
-
-
-          i_rxd <= '0';             --5
-      wait for clock_period;
-          i_sample <= '1';
-      wait for clock_period *3;
-          i_sample <= '0';
-      wait for clock_period *2;
-      
-  
-          i_rxd    <= '1';          --6
-      wait for clock_period;
-          i_sample <= '1';
-      wait for clock_period *3;
-          i_sample <= '0';
-      wait for clock_period *2;  
-
-
-          i_rxd <= '0';              --7
-      wait for clock_period;
-          i_sample <= '1';
-      wait for clock_period *3;
-          i_sample <= '0';
-      wait for clock_period *2;
-      
-  
-          i_rxd    <= '0';           --add
-      wait for clock_period;
-          i_sample <= '1';
-      wait for clock_period *3;
-          i_sample <= '0';
-      wait for clock_period *2;  
-
-
-          i_rxd    <= '1';           --add
-      wait for clock_period;
-          i_sample <= '1';
-      wait for clock_period *3;
-          i_sample <= '0';
-      wait for clock_period *2;
- 
-          i_rxd    <= '1';           --add
-      wait for clock_period;
-          i_sample <= '1';
-      wait for clock_period *3;
-          i_sample <= '0';
-      wait for clock_period *2;
-		
-          i_rxd    <= '1';           --add
-      wait for clock_period;
-          i_sample <= '1';
-      wait for clock_period *3;
-          i_sample <= '0';
-      wait for clock_period *2;
-
-
-          i_rxd <= '0';        --start
-      wait for clock_period;
-          i_sample <= '1';
-      wait for clock_period *3;
-          i_sample <= '0';
-      wait for clock_period *2;
-      
-  
-          i_rxd    <= '1';      -- 0
-      wait for clock_period;
-          i_sample <= '1';
-      wait for clock_period *3;
-          i_sample <= '0';
-      wait for clock_period *2;  
- 
- 
-           i_rxd <= '0';       --1
-  wait for clock_period;
-      i_sample <= '1';
-  wait for clock_period *3;
-      i_sample <= '0';
-  wait for clock_period *2;
-  
-
-      i_rxd    <= '1';             --2
-  wait for clock_period;
-      i_sample <= '1';
-  wait for clock_period *3;
-      i_sample <= '0';
-  wait for clock_period *2;  
-  
-  
-            i_rxd <= '0';        --3
-wait for clock_period;
-  i_sample <= '1';
-wait for clock_period *3;
-  i_sample <= '0';
-wait for clock_period *2;
-
-
-  i_rxd    <= '1';                --4
-wait for clock_period;
-  i_sample <= '1';
-wait for clock_period *3;
-  i_sample <= '0';
-wait for clock_period *2;  
-
-
-          i_rxd <= '0';             --5
-      wait for clock_period;
-          i_sample <= '1';
-      wait for clock_period *3;
-          i_sample <= '0';
-      wait for clock_period *2;
-      
-  
-          i_rxd    <= '1';          --6
-      wait for clock_period;
-          i_sample <= '1';
-      wait for clock_period *3;
-          i_sample <= '0';
-      wait for clock_period *2;  
-
-
-          i_rxd <= '0';              --7
-      wait for clock_period;
-          i_sample <= '1';
-      wait for clock_period *3;
-          i_sample <= '0';
-      wait for clock_period *2;
-      
-  
-          i_rxd    <= '1';           --add
-      wait for clock_period;
-          i_sample <= '1';
-      wait for clock_period *3;
-          i_sample <= '0';
-      wait for clock_period *2;  
-
-
-          i_rxd    <= '1';           --add
-      wait for clock_period;
-          i_sample <= '1';
-      wait for clock_period *3;
-          i_sample <= '0';
-      wait for clock_period *2;
-
-          i_rxd    <= '1';           --add
-      wait for clock_period;
-          i_sample <= '1';
-      wait for clock_period *3;
-          i_sample <= '0';
-      wait for clock_period *2;
  
           wait;
   end process;

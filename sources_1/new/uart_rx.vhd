@@ -71,19 +71,18 @@ entity uart_rx is
     generic(
         G_DATA_WIDTH       : integer   := 8;                 -- Default 8
         G_RST_LEVEVEL      : RST_LEVEL := HL;                -- HL (High Level), LL(Low Level)
-        G_SAMPLE_USED      : boolean   := false;             -- 
+		  G_SAMPLE_PER_BIT   : positive  := 13;
         G_LSB_MSB          : LSB_MSB   := LSB;               -- LSB(Least Significant Bit), MSB(Most Significant Bit)
         G_USE_BREAK        : boolean   := true;              -- true, false
         G_USE_OVERRUN      : boolean   := true;              -- true, false
         G_USE_FRAMEIN      : boolean   := true;              -- true, false
         G_USE_PARITY       : U_PARITY  := ODD                -- NONE(Parity not used), ODD(odd parity), EVEN(Even parity)
-    );
+        );
     port   (
         i_clk           : in  std_logic;                      -- Input CLOCK
         i_rst           : in  std_logic;                      -- Input Reset for clk
-        i_sample        : in  std_logic;                      -- Input Sample signal - comes from BAUD RATE GENERATOR- signal to sample input
         i_ena           : in  std_logic;                      -- Input Uart Enable Signal
-        i_prescaler     : in  integer;
+        i_prescaler     : in  integer range 0 to 256;
         i_rxd           : in  std_logic;                      -- Input Reciveve Data bus Line
         i_data_accepted : in  std_logic;                      -- Input Data Recieved througth UART are stored/used
         o_brake         : out std_logic;                      -- Break Detected
@@ -92,14 +91,15 @@ entity uart_rx is
         o_parity_err    : out std_logic;                      -- Output Error and Signaling
         o_rx_data       : out std_logic_vector(G_DATA_WIDTH-1 downto 0); -- Output Recieved Data
         o_valid         : out std_logic
-    );
+        );
 end uart_rx;
 
 architecture Behavioral of uart_rx is
     component data_sample
         generic(
             G_RST_LEVEVEL      : RST_LEVEL;                          -- HL (High Level), LL(Low Level)
-            G_SAMPLE_USED      : boolean                             -- 
+            G_SAMPLE_USED      : boolean;                            --
+            G_SAMPLE_PER_BIT   : positive				
             );
         port   (
             i_clk              : in  std_logic;                      -- Input CLOCK
@@ -127,7 +127,7 @@ end component;
     -- Reset Values for TYPE_IN_REG type data
     constant TYPE_IN_REG_RST : TYPE_IN_REG := (
         ena          => '0',
-        rxd          => '0',
+        rxd          => '1',
         valid        => '0',
         data_acc     => '0');
 
@@ -142,6 +142,7 @@ end component;
         fsm         : TYPE_UART_FSM;                            -- Current FSM state
         cnt         : integer range 0 to G_DATA_WIDTH;          -- Counter for Data Recieve (UART_MSG state)
         break_cnt   : integer range 0 to 15;                    -- Counter for Break timeout(BREAK    state)
+        valid_sample: std_logic;
     end record;
 
     -- Reset Values for TYPE_OUT_REG type data
@@ -153,8 +154,9 @@ end component;
         rx_data      => (others => '0'),
         valid        => '0',
         fsm          => IDLE,
-        cnt          => 0,
-        break_cnt    => 0);
+        cnt          =>  0,
+        break_cnt    =>  0,
+		  valid_sample => '0');
 
     -- All Zeros constant - Used for comparation when checking in data for BRAKE
     constant zeros         : std_logic_vector(G_DATA_WIDTH-1 downto 0) := (others => '0');
@@ -163,6 +165,7 @@ end component;
 
     -- signal - takes High Level if there is active RESET on the module input
     signal s_reset    : std_logic;
+    signal s_sampler_en    : std_logic;
     -- signal
     signal s_rxd      : std_logic;
     -- signal
@@ -183,21 +186,37 @@ begin
     s_reset <= '1' when ((G_RST_LEVEVEL = HL and i_rst = '1') or (G_RST_LEVEVEL = LL and i_rst = '0'))
                    else '0';
 
-  uut: 
+  DS_inst_0: 
   data_sample 
-  generic map ( 
-      G_RST_LEVEVEL => G_RST_LEVEVEL,
-      G_SAMPLE_USED => G_SAMPLE_USED )
-  port map ( 
-      i_clk         => i_clk,
-      i_rst         => i_rst,
-      i_sample      => i_sample,
-      i_ena         => i_ena,
-      i_prescaler   => i_prescaler,
-      i_rxd         => i_rxd,
-      o_valid       => s_valid,
-      o_rxd         => s_rxd );
+      generic map ( 
+          G_RST_LEVEVEL    => G_RST_LEVEVEL,
+          G_SAMPLE_USED    => false,
+          G_SAMPLE_PER_BIT => G_SAMPLE_PER_BIT)
+      port map ( 
+          i_clk         => i_clk,
+          i_rst         => i_rst,
+          i_sample      => '0',
+          i_ena         => s_sampler_en,
+          i_prescaler   => i_prescaler,
+          i_rxd         => i_rxd,
+          o_valid       => s_valid,
+          o_rxd         => s_rxd );
 
+
+    process(i_clk)
+	 begin
+	     if rising_edge(i_clk) then
+	         if(s_reset = '1') then
+		          s_sampler_en <= '0';
+		      else
+		          if(i_reg.ena = '1' and i_rxd = '0') then
+					     s_sampler_en <= '1';
+					 elsif(o_reg.valid = '1') then
+					     s_sampler_en <= '0';
+					 end if;
+		      end if;
+	     end if;
+    end process;
 -------------------------------------------------------------------------------------------------------
 --        Registring Inputs
 -------------------------------------------------------------------------------------------------------
@@ -217,9 +236,9 @@ reg_in_proc:
     end process reg_in_proc;
 
 comb_in_proc:
---    process(i_reg, i_ena, i_rxd, i_data_accepted, i_sample)
-    process(i_reg.valid, i_reg.ena, i_reg.rxd, i_reg.data_acc,
-            s_valid, s_rxd)
+    process(i_reg, i_ena, s_rxd, i_data_accepted, s_valid)
+--    process(i_reg.valid, i_reg.ena, i_reg.rxd, i_reg.data_acc,
+--            s_valid, s_rxd)
         variable V         : TYPE_IN_REG;
     begin
         V          := i_reg;
@@ -259,38 +278,40 @@ reg_out_proc:
 -------------------------------------------------------------------------------------------------------
 
 comb_out_proc:
---    process(i_reg, o_reg, i_sample)
-    process( i_reg.ena, i_reg.rxd, i_reg.data_acc, i_reg.valid,
-            o_reg.break , o_reg.overrun_err , o_reg.framein_err , o_reg.parity_err , o_reg.rx_data , o_reg.valid , o_reg.fsm , o_reg.cnt , o_reg.break_cnt ,
-            i_sample) 
+    process(i_reg, o_reg, i_rxd)
+--    process(i_reg.ena, i_reg.rxd, i_reg.data_acc, i_reg.valid, i_rxd,
+--            o_reg.break , o_reg.overrun_err , o_reg.framein_err , o_reg.parity_err , o_reg.rx_data , o_reg.valid , o_reg.fsm , o_reg.cnt , o_reg.break_cnt ,
+--            i_sample) 
         variable V         : TYPE_OUT_REG;
         variable v_parity  : std_logic;
     begin
-        V         := o_reg;
+        V              := o_reg;
+        V.valid_sample := i_reg.valid;
 
-        V.valid   := i_reg.valid;
         if i_reg.ena = '1' then
-            if o_reg.valid = '0' and i_reg.valid = '1' then
-                case (o_reg.fsm) is
-                    -- Default FSM state (signals are in reset value)- waits for start bit
-                    -- Sets Counter cnt depending on LSB or MSB data notation expected
-                    when IDLE =>
-						v_parity := '0';
+            case (o_reg.fsm) is
+                -- Default FSM state (signals are in reset value)- waits for start bit
+                -- Sets Counter cnt depending on LSB or MSB data notation expected
+                when IDLE =>
+                    v_parity := '0';
+						  if (i_rxd = '0') then
                         V := TYPE_OUT_REG_RST;
-                        if i_reg.rxd = '0' then
-                            V.fsm := UART_MSG;
-                        end if;
-                        if (G_LSB_MSB = LSB) then
-                            V.cnt := 0;
-                        else
-                            V.cnt := G_DATA_WIDTH -1;
-                        end if;
+                    end if;
+                    -- Sets Counter cnt depending on LSB or MSB data notation expected
+                    if (G_LSB_MSB = LSB) then
+                        V.cnt := 0;
+                    else
+                        V.cnt := G_DATA_WIDTH -1;
+                    end if;
+                    -- waits for start bit
+                    if i_reg.valid = '1' and i_reg.rxd = '0' then
+                        V.fsm        := UART_MSG;
+                    end if;
 
-
-                    -- Takes G_DATA_WIDTH bits after START_BIT to be registered
-                    -- Next state is - PARITY(if used), or STOP_BIT if PARITY is not used
-                    when UART_MSG =>
-
+                -- Takes G_DATA_WIDTH bits after START_BIT to be registered
+                -- Next state is - PARITY(if used), or STOP_BIT if PARITY is not used
+                when UART_MSG =>
+                    if i_reg.valid = '1' and o_reg.valid_sample = '0' then
                         V.rx_data(o_reg.cnt) := i_reg.rxd;
                         
                         if (G_LSB_MSB = LSB) then
@@ -318,33 +339,35 @@ comb_out_proc:
                                 V.cnt  := o_reg.cnt -1;
                             end if;
                         end if;
+                    end if;
 
-                    -- If Used Parity checks recieved data for parity
-                    -- If parity is not satisfied, parity error signal is rised
-                    -- Next State is STOP_BIT
-                    when PARITY =>
-                        V.fsm        := STOP_BIT;
-                        if (G_USE_PARITY = ODD) then
-								    v_parity     := '0';
-                            if (i_reg.rxd = f_parity(o_reg.rx_data(G_DATA_WIDTH-1 downto 0))) then
-                                v_parity := '1';
-                            end if;
-                        end if;
-
-                        if (G_USE_PARITY = EVEN) then
-                            v_parity     := '0';
-                            if ( i_reg.rxd = not(f_parity(o_reg.rx_data(G_DATA_WIDTH-1 downto 0)))) then
-                                v_parity := '1';
-                            end if;
-                        end if;
-
-                    -- Last bit that signals end of the message - expected to be '1'
-                    -- Next State
-                    --      IDLE - when '1' is detected on the output
-                    --             rises frameing or overrun error if detected (when used)
-                    --             if tehere is no errors rises VALID data signal
-                    --      BREAK- if all data recieved are Zeros(and STOP bit is Zero) break is detected(if used)
-                    when STOP_BIT =>
+                -- If Used Parity checks recieved data for parity
+                -- If parity is not satisfied, parity error signal is rised
+                -- Next State is STOP_BIT
+                when PARITY =>
+--                        V.fsm        := STOP_BIT;
+--                        if (G_USE_PARITY = ODD) then
+--								    v_parity     := '0';
+--                            if (i_reg.rxd = f_parity(o_reg.rx_data(G_DATA_WIDTH-1 downto 0))) then
+--                                v_parity := '1';
+--                            end if;
+--                        end if;
+--
+--                        if (G_USE_PARITY = EVEN) then
+--                            v_parity     := '0';
+--                            if ( i_reg.rxd = not(f_parity(o_reg.rx_data(G_DATA_WIDTH-1 downto 0)))) then
+--                                v_parity := '1';
+--                            end if;
+--                        end if;
+--
+--                    -- Last bit that signals end of the message - expected to be '1'
+--                    -- Next State
+--                    --      IDLE - when '1' is detected on the output
+--                    --             rises frameing or overrun error if detected (when used)
+--                    --             if tehere is no errors rises VALID data signal
+--                    --      BREAK- if all data recieved are Zeros(and STOP bit is Zero) break is detected(if used)
+                when STOP_BIT =>
+                    if i_reg.valid = '1' and o_reg.valid_sample = '0' then
                         if (i_reg.rxd = '1') then
                             V.valid := '1';
 
@@ -373,8 +396,8 @@ comb_out_proc:
                             -- Next state STOP_BIT
                                  if o_reg.rx_data(G_DATA_WIDTH-1 downto 0) = zeros then
                                      V.framein_err := '0';
-									 v_parity      := '0';
-									 V.break       := '1';
+									          v_parity      := '0';
+									          V.break       := '1';
                                      V.valid       := '0';
                                      if (G_USE_FRAMEIN = true) then
                                          V.break_cnt  := o_reg.break_cnt +1;
@@ -389,11 +412,11 @@ comb_out_proc:
                                  V.fsm         := STOP_BIT;
                             end if;
                         end if;
+                    end if;
 
-                    when others =>
-                        V := TYPE_OUT_REG_RST;
-                end case;
-            end if;
+                when others =>
+               --     V := TYPE_OUT_REG_RST;
+            end case;
         end if;
 
         -- Assign valuses that should be registered
@@ -409,57 +432,5 @@ comb_out_proc:
     o_parity_err    <= o_reg.parity_err;                 -- Output Error and Signaling
     o_rx_data       <= o_reg.rx_data;                    -- Output Recieved Data
     o_valid         <= o_reg.valid;                      -- Output Data Valid
-
--------------------------------------------------------------------------------------------------------
---                             BRG
--------------------------------------------------------------------------------------------------------
-
-genearate_sample_gen:
-if G_SAMPLE_USED = false generate
-
-synchronus_BRG_process:
-    process(i_clk)
-    begin
-        if (rising_edge(i_clk)) then
-            if(s_reset = '1') then
-                r_brd <= TYPE_BRG_REG_RST;
-            else
-                r_brd <= c_brd;
-            end if;
-        end if;
-    end process synchronus_BRG_process;
-
-comb_process:
-    process(r_brd.brs, r_brd.cnt, r_brd.sample_cnt, i_prescaler, i_ena)
-        variable V : TYPE_BRG_REG;
-    begin
-        
-        V := r_brd;
-
-        V.sample_cnt := (i_prescaler/2) / 13;
-        if ((i_prescaler/2) / 13) = 0 then
-            V.sample_cnt := (2);    
-        end if;
-
-        if i_ena = '1' then
-
-        if r_brd.sample_cnt /= 0 then
-            if (r_brd.cnt mod r_brd.sample_cnt = 0) then      
-                V.brs := '1';
-            else
-                V.brs := '0'; 
-            end if;
-         end if;
-
-            if r_brd.cnt < i_prescaler/2 -1 then      
-                V.cnt := r_brd.cnt +1;
-            else
-                V.cnt := 0; 
-            end if;
-        end if;
-        
-        c_brd <= V;
-    end process comb_process;
-end generate;
 
 end Behavioral;
