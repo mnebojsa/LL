@@ -1,21 +1,21 @@
 ----------------------------------------------------------------------------------
--- Company: 
--- Engineer: 
--- 
+-- Company:
+-- Engineer:
+--
 -- Create Date: 04/02/2020 03:43:35 PM
--- Design Name: 
+-- Design Name:
 -- Module Name: BRG - Behavioral
--- Project Name: 
--- Target Devices: 
--- Tool Versions: 
--- Description: 
--- 
--- Dependencies: 
--- 
+-- Project Name:
+-- Target Devices:
+-- Tool Versions:
+-- Description:
+--
+-- Dependencies:
+--
 -- Revision:
 -- Revision 0.01 - File Created
 -- Additional Comments:
--- 
+--
 ----------------------------------------------------------------------------------
 
 
@@ -35,7 +35,7 @@ use work.p_uart.all;
 entity BRG is
     generic(
         G_RST_LEVEVEL      : RST_LEVEL := HL;                -- HL (High Level), LL(Low Level)
-        G_SAMPLE_USED      : boolean   := true             -- 
+        G_SAMPLE_USED      : boolean   := false               --
         );
     port   (
         i_clk              : in  std_logic;                      -- Input CLOCK
@@ -60,34 +60,12 @@ architecture Behavioral of BRG is
         cnt        =>  0,
         sample_cnt =>  0);
 
-    signal r_brd, c_brd       : TYPE_BRG_REG;
-
-
--- Inputs registered
-type TYPE_IN_REG is record
-    sample      : std_logic;                      -- Input Sample signal - comes from BAUD RATE GENERATOR- signal to sample input
-    ena         : std_logic;                      -- Input Uart Enable Signal
-    rxd         : std_logic;                      -- Input Reciveve Data bus Line
-    data_acc    : std_logic;                      -- Input Data Recieved througth UART are stored/used
-    sample_1s   : integer range 0 to 16;
-    sample_0s   : integer range 0 to 16;
-end record;
-
--- Reset Values for TYPE_IN_REG type data
-constant TYPE_IN_REG_RST : TYPE_IN_REG := (
-    sample       => '0',
-    ena          => '0',
-    rxd          => '0',
-    data_acc     => '0',
-    sample_1s    =>  0,
-    sample_0s    =>  0);
-
 -- signal - takes High Level if there is active RESET on the module input
 signal s_reset    : std_logic;
 -- signal - Registered inputs to the module
-signal i_reg      : TYPE_IN_REG;
+signal r_brd      : TYPE_BRG_REG;
 -- signal - Contains input values to be registered
-signal c_to_i_reg : TYPE_IN_REG;
+signal c_brd      : TYPE_BRG_REG;
 
 begin
 
@@ -115,13 +93,15 @@ begin
 smpl_gen_not_used:
 if G_SAMPLE_USED = true generate
     comb_process:
-    process(r_brd.brs, r_brd.cnt, r_brd.sample_cnt, i_sample)
+    process(r_brd.brs, r_brd.cnt, r_brd.sample_cnt, i_sample, i_ena)
         variable V : TYPE_BRG_REG;
-    begin        
+    begin
         V     := r_brd;
 
-        V.brs := i_sample;
-        
+        if i_ena = '1' then
+            V.brs := i_sample;
+        end if;
+
         c_brd <= V;
     end process comb_process;
 end generate smpl_gen_not_used;
@@ -132,31 +112,26 @@ if G_SAMPLE_USED = false generate
         process(r_brd.brs, r_brd.cnt, r_brd.sample_cnt, i_prescaler, i_ena)
             variable V : TYPE_BRG_REG;
         begin
-        
+
             V := r_brd;
 
             V.sample_cnt := (i_prescaler/2) / 13;
             if ((i_prescaler/2) / 13) = 0 then
-                V.sample_cnt := (2);    
+                V.sample_cnt := (2);
             end if;
 
             if i_ena = '1' then
-
                 if r_brd.sample_cnt /= 0 then
-                    if (r_brd.cnt mod r_brd.sample_cnt = 0) then      
+                    if (r_brd.cnt = r_brd.sample_cnt) then
                         V.brs := '1';
+                        V.cnt :=  0;
                     else
-                        V.brs := '0'; 
+                        V.brs := '0';
+                        V.cnt := r_brd.cnt +1;
                     end if;
                 end if;
-
-                if r_brd.cnt < i_prescaler/2 -1 then      
-                    V.cnt := r_brd.cnt +1;
-                else
-                    V.cnt := 0; 
-                end if;
             end if;
-        
+
         c_brd <= V;
     end process comb_process;
 end generate smpl_gen_used;

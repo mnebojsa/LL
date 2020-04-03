@@ -96,41 +96,40 @@ entity uart_rx is
 end uart_rx;
 
 architecture Behavioral of uart_rx is
-    type TYPE_BRG_REG is record
-        brs        : std_logic;
-        cnt        : integer range 0 to 15;
-        sample_cnt : integer range 0 to 256;
-    end record;
-
-    constant TYPE_BRG_REG_RST : TYPE_BRG_REG := (
-        brs        => '0',
-        cnt        =>  0,
-        sample_cnt =>  0);
-
-signal r_brd, c_brd       : TYPE_BRG_REG;
-
+    component data_sample
+        generic(
+            G_RST_LEVEVEL      : RST_LEVEL;                          -- HL (High Level), LL(Low Level)
+            G_SAMPLE_USED      : boolean                             -- 
+            );
+        port   (
+            i_clk              : in  std_logic;                      -- Input CLOCK
+            i_rst              : in  std_logic;                      -- Input Reset for clk
+            i_sample           : in  std_logic;                      -- Input Sample signal - comes from BAUD RATE GENERATOR- signal to sample input
+            i_ena              : in  std_logic;                      -- Input Uart Enable Signal
+            i_prescaler        : in  integer range 0 to 256;
+            i_rxd              : in  std_logic;                      -- Input Reciveve Data bus Line
+            o_valid            : out std_logic;                      -- Input Reciveve Data bus Line
+            o_rxd              : out std_logic                       -- Output Recieved Data
+            );
+end component;
 
     -- UART FSM states
     type TYPE_UART_FSM is (IDLE, START_BIT, UART_MSG, PARITY, STOP_BIT);
 
     -- Inputs registered
     type TYPE_IN_REG is record
-        sample      : std_logic;                      -- Input Sample signal - comes from BAUD RATE GENERATOR- signal to sample input
         ena         : std_logic;                      -- Input Uart Enable Signal
         rxd         : std_logic;                      -- Input Reciveve Data bus Line
+        valid       : std_logic;
         data_acc    : std_logic;                      -- Input Data Recieved througth UART are stored/used
-        sample_1s   : integer range 0 to 16;
-        sample_0s   : integer range 0 to 16;
     end record;
 
     -- Reset Values for TYPE_IN_REG type data
     constant TYPE_IN_REG_RST : TYPE_IN_REG := (
-        sample       => '0',
         ena          => '0',
         rxd          => '0',
-        data_acc     => '0',
-        sample_1s    =>  0,
-        sample_0s    =>  0);
+        valid        => '0',
+        data_acc     => '0');
 
     -- Siginficant values that would be forvarded to output or used for checks in code
     type TYPE_OUT_REG is record
@@ -164,6 +163,10 @@ signal r_brd, c_brd       : TYPE_BRG_REG;
 
     -- signal - takes High Level if there is active RESET on the module input
     signal s_reset    : std_logic;
+    -- signal
+    signal s_rxd      : std_logic;
+    -- signal
+    signal s_valid    : std_logic;
     -- signal - Registered inputs to the module
     signal i_reg      : TYPE_IN_REG;
     -- signal - Contains input values to be registered
@@ -179,6 +182,21 @@ begin
     -- equals '1' if there is active reset on the rst input, otherwise equals '0'
     s_reset <= '1' when ((G_RST_LEVEVEL = HL and i_rst = '1') or (G_RST_LEVEVEL = LL and i_rst = '0'))
                    else '0';
+
+  uut: 
+  data_sample 
+  generic map ( 
+      G_RST_LEVEVEL => G_RST_LEVEVEL,
+      G_SAMPLE_USED => G_SAMPLE_USED )
+  port map ( 
+      i_clk         => i_clk,
+      i_rst         => i_rst,
+      i_sample      => i_sample,
+      i_ena         => i_ena,
+      i_prescaler   => i_prescaler,
+      i_rxd         => i_rxd,
+      o_valid       => s_valid,
+      o_rxd         => s_rxd );
 
 -------------------------------------------------------------------------------------------------------
 --        Registring Inputs
@@ -198,75 +216,25 @@ reg_in_proc:
         end if;
     end process reg_in_proc;
 
-i_sample_used:
-if G_SAMPLE_USED = true generate
 comb_in_proc:
 --    process(i_reg, i_ena, i_rxd, i_data_accepted, i_sample)
-    process(i_reg.sample, i_reg.ena, i_reg.rxd, i_reg.data_acc, i_reg.sample_1s, i_reg.sample_0s,
-            i_ena, i_rxd, i_data_accepted, i_sample)
+    process(i_reg.valid, i_reg.ena, i_reg.rxd, i_reg.data_acc,
+            s_valid, s_rxd)
         variable V         : TYPE_IN_REG;
     begin
         V          := i_reg;
 
-        V.sample   := i_sample;
         V.ena      := i_ena;
+        V.valid    := s_valid;
         V.data_acc := i_data_accepted;
 
-        if (i_rxd = '1') then
-            V.sample_1s:= i_reg.sample_1s +1;
-        else
-            V.sample_0s:= i_reg.sample_0s +1;
+        if V.valid = '1' and i_reg.valid = '0' then
+            V.rxd      := s_rxd;
         end if;
 
-        if i_sample = '1' and i_reg.sample = '0' then
-            if (i_reg.sample_1s >= i_reg.sample_0s) then
-                V.rxd      := '1';
-            else
-                V.rxd      := '1';
-            end if;
-            V.sample_1s:= 0;
-            V.sample_0s:= 0;
-        end if;
         -- Assign valuses that should be registered
         c_to_i_reg <= V;
     end process comb_in_proc;
-end generate;
-
-i_sample_not_used:
-if G_SAMPLE_USED = false generate
-comb_in_proc:
---    process(i_reg, i_ena, i_rxd, i_data_accepted, i_sample)
-    process(i_reg.sample, i_reg.ena, i_reg.rxd, i_reg.data_acc, i_reg.sample_1s, i_reg.sample_0s,
-            i_ena, i_rxd, i_data_accepted, r_brd.brs, r_brd.cnt, i_prescaler)
-        variable V         : TYPE_IN_REG;
-    begin
-        V          := i_reg;
-
-        V.sample   := r_brd.brs;
-        V.ena      := i_ena;
-        V.data_acc := i_data_accepted;
-
-        if V.sample = '1' and i_reg.sample = '0' then
-            if (i_rxd = '1') then
-                V.sample_1s:= i_reg.sample_1s +1;
-            else
-                V.sample_0s:= i_reg.sample_0s +1;
-            end if;
-         end if;
-
-         if r_brd.cnt = i_prescaler/2 -2 then
-            if (i_reg.sample_1s >= i_reg.sample_0s) then
-                V.rxd      := '1';
-            else
-                V.rxd      := '0';
-            end if;
-            V.sample_1s:= 0;
-            V.sample_0s:= 0;
-        end if;
-        -- Assign valuses that should be registered
-        c_to_i_reg <= V;
-    end process comb_in_proc;
-end generate;
 
 -------------------------------------------------------------------------------------------------------
 --        Registring Outputs
@@ -292,7 +260,7 @@ reg_out_proc:
 
 comb_out_proc:
 --    process(i_reg, o_reg, i_sample)
-    process(i_reg.sample, i_reg.ena, i_reg.rxd, i_reg.data_acc,
+    process( i_reg.ena, i_reg.rxd, i_reg.data_acc, i_reg.valid,
             o_reg.break , o_reg.overrun_err , o_reg.framein_err , o_reg.parity_err , o_reg.rx_data , o_reg.valid , o_reg.fsm , o_reg.cnt , o_reg.break_cnt ,
             i_sample) 
         variable V         : TYPE_OUT_REG;
@@ -300,8 +268,9 @@ comb_out_proc:
     begin
         V         := o_reg;
 
+        V.valid   := i_reg.valid;
         if i_reg.ena = '1' then
-            if i_sample = '0' and i_reg.sample = '1' then
+            if o_reg.valid = '0' and i_reg.valid = '1' then
                 case (o_reg.fsm) is
                     -- Default FSM state (signals are in reset value)- waits for start bit
                     -- Sets Counter cnt depending on LSB or MSB data notation expected

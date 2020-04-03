@@ -34,17 +34,18 @@ use work.p_uart.all;
 
 entity data_sample is
     generic(
-        G_RST_LEVEVEL      : RST_LEVEL := HL;                -- HL (High Level), LL(Low Level)
-        G_SAMPLE_USED      : boolean   := true              -- 
+        G_RST_LEVEVEL      : RST_LEVEL := HL;                    -- HL (High Level), LL(Low Level)
+        G_SAMPLE_USED      : boolean   := false                  -- 
         );
     port   (
-        i_clk           : in  std_logic;                      -- Input CLOCK
-        i_rst           : in  std_logic;                      -- Input Reset for clk
-        i_sample        : in  std_logic;                      -- Input Sample signal - comes from BAUD RATE GENERATOR- signal to sample input
-        i_ena           : in  std_logic;                      -- Input Uart Enable Signal
-        i_prescaler     : in  integer range 0 to 256;
-        i_rxd           : in  std_logic;                      -- Input Reciveve Data bus Line
-        o_rxd           : out std_logic                       -- Output Recieved Data
+        i_clk              : in  std_logic;                      -- Input CLOCK
+        i_rst              : in  std_logic;                      -- Input Reset for clk
+        i_sample           : in  std_logic;                      -- Input Sample signal - comes from BAUD RATE GENERATOR- signal to sample input
+        i_ena              : in  std_logic;                      -- Input Uart Enable Signal
+        i_prescaler        : in  integer range 0 to 256;
+        i_rxd              : in  std_logic;                      -- Input Reciveve Data bus Line
+        o_valid            : out std_logic;
+        o_rxd              : out std_logic                       -- Output Recieved Data
         );
 end data_sample;
 
@@ -71,6 +72,7 @@ end component BRG;
         sample      : std_logic;                      -- Input Sample signal - comes from BAUD RATE GENERATOR- signal to sample input
         ena         : std_logic;                      -- Input Uart Enable Signal
         rxd         : std_logic;                      -- Input Reciveve Data bus Line
+        valid       : std_logic;
         sample_1s   : integer range 0 to 16;
         sample_0s   : integer range 0 to 16;
     end record;
@@ -80,6 +82,7 @@ end component BRG;
         sample       => '0',
         ena          => '0',
         rxd          => '0',
+        valid        => '0',
         sample_1s    =>  0,
         sample_0s    =>  0);
 
@@ -147,21 +150,25 @@ comb_in_proc:
 
         V.sample   := s_sample;
         V.ena      := i_ena;
-
-        if (i_rxd = '1') then
-            V.sample_1s:= i_reg.sample_1s +1;
-        else
-            V.sample_0s:= i_reg.sample_0s +1;
-        end if;
+        V.valid    := '0';
 
         if s_sample = '1' and i_reg.sample = '0' then
+            if (i_rxd = '1') then
+                V.sample_1s:= i_reg.sample_1s +1;
+            else
+                V.sample_0s:= i_reg.sample_0s +1;
+            end if;
+        end if;
+
+        if (i_reg.sample_1s + i_reg.sample_0s = 12 ) then
             if (i_reg.sample_1s >= i_reg.sample_0s) then
                 V.rxd      := '1';
             else
-                V.rxd      := '1';
+                V.rxd      := '0';
             end if;
-            V.sample_1s:= 0;
-            V.sample_0s:= 0;
+            V.valid    := '1';
+            V.sample_1s:=  0;
+            V.sample_0s:=  0;
         end if;
         -- Assign valuses that should be registered
         c_to_i_reg <= V;
@@ -171,7 +178,7 @@ comb_in_proc:
 -------------------------------------------------------------------------------------------------------
 --        Outputs Assigment
 -------------------------------------------------------------------------------------------------------
+    o_valid       <= i_reg.valid;
     o_rxd         <= i_reg.rxd;                      -- Break Detected
-
 
 end Behavioral;
