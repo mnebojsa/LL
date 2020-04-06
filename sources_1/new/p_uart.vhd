@@ -1,18 +1,22 @@
-----------------------------------------------------------------------------------
--- Company:  RT-RK
--- Engineer: Nebojsa Markovic
+----------------------------------------------------------------------------
+-- Company     : RT-RK
+-- Project     :
+----------------------------------------------------------------------------
+-- File        : uart_rx.vhd
+-- Author(s)   : Nebojsa Markovic
+-- Created     : March 10th, 2020
+-- Modified    :
+-- Changes     :
+---------------------------------------------------------------------------
+-- Design Unit : uart_rx.vhd
+-- Library     :
+---------------------------------------------------------------------------
+-------------------------------------------------------------------------------------------------------------
+-- Description : Full UART_RX module
 --
--- Create Date: 10.03.2020 13:46:37
--- Design Name:
--- Module Name: uart_rx - Behavioral
--- Project Name:
--- Description:
 --
--- Dependencies:
 --
--- Revision:
--- Revision 0.01 - File Created
-----------------------------------------------------------------------------------
+----------------------------------------------------------------------------------------------------------------
 
 --------------------------------------------------------------------------------------------
 --                    UART_RX INSTANTIATION template
@@ -46,15 +50,9 @@
 
 library ieee;
 use ieee.std_logic_1164.all;
+use work.p_general.all;
 
 package p_uart is
-    --! Used to select High(HL) ot Low(LL) Reset Level for the module
-    type RST_LEVEL is (HL, LL);
-    --! Used to choose LSB or MSB data expected on the rxd input
-    type LSB_MSB   is (LSB , MSB);
-    --! Used PARITY type
-    type U_PARITY  is (NONE, EVEN, ODD);
-
     --! Calculates parity
     function f_parity(s_in           : std_logic_vector) return std_logic;
 
@@ -83,6 +81,24 @@ package p_uart is
             o_parity_err    : out std_logic;                      -- Output Error and Signaling
             o_rx_data       : out std_logic_vector(G_DATA_WIDTH-1 downto 0); -- Output Recieved Data
             o_valid         : out std_logic
+            );
+    end component;
+
+    component data_sample
+        generic(
+            G_RST_LEVEVEL      : RST_LEVEL;                          -- HL (High Level), LL(Low Level)
+            G_SAMPLE_USED      : boolean;                            --
+            G_SAMPLE_PER_BIT   : positive
+            );
+        port   (
+            i_clk              : in  std_logic;                      -- Input CLOCK
+            i_rst              : in  std_logic;                      -- Input Reset for clk
+            i_sample           : in  std_logic;                      -- Input Sample signal - comes from BAUD RATE GENERATOR- signal to sample input
+            i_ena              : in  std_logic;                      -- Input Uart Enable Signal
+            i_prescaler        : in  integer range 0 to 256;
+            i_rxd              : in  std_logic;                      -- Input Reciveve Data bus Line
+            o_valid            : out std_logic;                      -- Input Reciveve Data bus Line
+            o_rxd              : out std_logic                       -- Output Recieved Data
             );
     end component;
 

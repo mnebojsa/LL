@@ -31,12 +31,13 @@ use IEEE.NUMERIC_STD.ALL;
 --library UNISIM;
 --use UNISIM.VComponents.all;
 use work.p_uart.all;
+use work.p_general.all;
 
 entity uart_rx_tb is
       generic(
         G_DATA_WIDTH       : integer   := 8;
         G_RST_LEVEVEL      : RST_LEVEL := HL;
-		  G_SAMPLE_PER_BIT   : positive  := 13;
+	    G_SAMPLE_PER_BIT   : positive  := 13;
         G_LSB_MSB          : LSB_MSB   := LSB;
         G_USE_BREAK        : boolean   := false;
         G_USE_OVERRUN      : boolean   := false;
@@ -71,7 +72,7 @@ begin
       generic map(
 		    G_DATA_WIDTH     => 8,
 		    G_RST_LEVEVEL    => G_RST_LEVEVEL,
-			 G_SAMPLE_PER_BIT => G_SAMPLE_PER_BIT,
+			G_SAMPLE_PER_BIT => G_SAMPLE_PER_BIT,
 		    G_LSB_MSB        => G_LSB_MSB,
 		    G_USE_BREAK      => G_USE_BREAK,
 		    G_USE_OVERRUN    => G_USE_OVERRUN,
@@ -82,7 +83,7 @@ begin
 		    i_rst          => i_rst,
 		    i_ena          => i_ena,
 		    i_rxd          => i_rxd,
-			 i_prescaler    => i_prescaler,
+			i_prescaler    => i_prescaler,
 		    i_data_accepted=> '1',
 		    o_brake        => o_brake,
 		    o_overrun_err  => o_overrun_err, --o_overrun_err,

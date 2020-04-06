@@ -30,7 +30,7 @@ use IEEE.STD_LOGIC_1164.ALL;
 -- any Xilinx leaf cells in this code.
 --library UNISIM;
 --use UNISIM.VComponents.all;
-use work.p_uart.all;
+use work.p_general.all;
 
 entity data_sample is
     generic(
