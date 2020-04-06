@@ -49,39 +49,72 @@
 --    );
 
 library ieee;
-use ieee.std_logic_1164.all;
-use work.p_general.all;
+    use ieee.std_logic_1164.all;
+    use ieee.numeric_std.all;
+
+    use work.p_general.all;
 
 package p_uart is
+    constant G_DATA_WIDTH     : positive  := 8;      -- Default 8
+
+    -- Inputs registered
+    type TYPE_UART_IN is record
+        ena         : std_logic;             -- Input Uart Enable Signal
+        prescaler   : unsigned(31 downto 0); -- 
+        rxd         : std_logic;             -- Input Reciveve Data bus Line
+        data_acc    : std_logic;             -- Input Data Recieved througth UART are stored/used
+    end record;
+
+    -- Reset Values for TYPE_UART_IN type data
+    constant TYPE_UART_IN_RST : TYPE_UART_IN := (
+        ena          => '0',
+		prescaler    => (others => '0'),
+        rxd          => '0',
+        data_acc     => '0');
+
+
+    -- Inputs registered
+    type TYPE_UART_OUT is record
+        break         : std_logic;           -- Break Detected
+        overrun_err   : std_logic;           -- Output Error and Signaling
+        framein_err   : std_logic;           -- Output Error and Signaling
+        parity_err    : std_logic;           -- Output Error and Signaling
+        rx_data       : std_logic_vector(G_DATA_WIDTH -1 downto 0);    -- Output Recieved Data
+        valid         : std_logic;
+    end record;
+
+    -- Reset Values for TYPE_UART_OUT type data
+    constant TYPE_UART_OUT_RST : TYPE_UART_OUT := (
+        break          => '0',
+		overrun_err    => '0',
+        framein_err    => '0',
+        parity_err     => '0',
+        rx_data        => (others => '0'),
+        valid          => '0');
+
     --! Calculates parity
-    function f_parity(s_in           : std_logic_vector) return std_logic;
+    function f_parity(s_in   : std_logic_vector) return std_logic;
 
     --!UART_RX component
     component uart_rx is
-        generic(
-            G_DATA_WIDTH       : integer   := 8;                 -- Default 8
-            G_RST_LEVEVEL      : RST_LEVEL := HL;                -- HL (High Level), LL(Low Level)
-            G_SAMPLE_PER_BIT   : positive  := 13;
-            G_LSB_MSB          : LSB_MSB   := LSB;               -- LSB(Least Significant Bit), MSB(Most Significant Bit)
-            G_USE_BREAK        : boolean   := true;              -- true, false
-            G_USE_OVERRUN      : boolean   := true;              -- true, false
-            G_USE_FRAMEIN      : boolean   := true;              -- true, false
-            G_USE_PARITY       : U_PARITY  := ODD                -- NONE(Parity not used), ODD(odd parity), EVEN(Even parity)
-            );
-        port   (
-            i_clk           : in  std_logic;                      -- Input CLOCK
-            i_rst           : in  std_logic;                      -- Input Reset for clk
-            i_ena           : in  std_logic;                      -- Input Uart Enable Signal
-            i_prescaler     : in  integer range 0 to 256;
-            i_rxd           : in  std_logic;                      -- Input Reciveve Data bus Line
-            i_data_accepted : in  std_logic;                      -- Input Data Recieved througth UART are stored/used
-            o_brake         : out std_logic;                      -- Break Detected
-            o_overrun_err   : out std_logic;                      -- Output Error and Signaling
-            o_framein_err   : out std_logic;                      -- Output Error and Signaling
-            o_parity_err    : out std_logic;                      -- Output Error and Signaling
-            o_rx_data       : out std_logic_vector(G_DATA_WIDTH-1 downto 0); -- Output Recieved Data
-            o_valid         : out std_logic
-            );
+        generic
+		 (
+            G_DATA_WIDTH     : positive  := 8;      -- Default 8
+            G_RST_LEVEVEL    : RST_LEVEL := HL;     -- HL (High Level), LL(Low Level)
+            G_SAMPLE_PER_BIT : positive  := 13;
+            G_LSB_MSB        : LSB_MSB   := LSB;    -- LSB(Least Significant Bit), MSB(Most Significant Bit)
+            G_USE_BREAK      : boolean   := true;   -- true, false
+            G_USE_OVERRUN    : boolean   := true;   -- true, false
+            G_USE_FRAMEIN    : boolean   := true;   -- true, false
+            G_USE_PARITY     : U_PARITY  := ODD     -- NONE(Parity not used), ODD(odd parity), EVEN(Even parity)
+        );
+        port
+		  (
+            i_clk            : in  std_logic;       -- Input CLOCK
+            i_rst            : in  std_logic;       -- Input Reset for clk
+            i_uart           : in  TYPE_UART_IN;    -- Input Uart Signals
+            o_uart           : out TYPE_UART_OUT    -- Output Recieved Data 
+        );
     end component;
 
     component data_sample
@@ -95,11 +128,30 @@ package p_uart is
             i_rst              : in  std_logic;                      -- Input Reset for clk
             i_sample           : in  std_logic;                      -- Input Sample signal - comes from BAUD RATE GENERATOR- signal to sample input
             i_ena              : in  std_logic;                      -- Input Uart Enable Signal
-            i_prescaler        : in  integer range 0 to 256;
+            i_prescaler        : in  unsigned(31 downto 0);
             i_rxd              : in  std_logic;                      -- Input Reciveve Data bus Line
             o_valid            : out std_logic;                      -- Input Reciveve Data bus Line
             o_rxd              : out std_logic                       -- Output Recieved Data
             );
+    end component;
+
+
+    component BRG
+        generic(
+            G_RST_LEVEVEL    : RST_LEVEL := HL;
+            G_SAMPLE_USED    : boolean   := false;
+            G_SAMPLE_PER_BIT : positive  := 13;           --
+            G_DATA_WIDTH     : positive  := 8
+        );
+        port
+        (
+            i_clk            : in  std_logic;
+            i_rst            : in  std_logic;
+            i_sample         : in  std_logic;
+            i_ena            : in  std_logic;
+            i_prescaler      : in  unsigned(31 downto 0);
+            o_sample         : out std_logic
+        );
     end component;
 
 end package;

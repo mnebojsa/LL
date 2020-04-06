@@ -1,84 +1,111 @@
-----------------------------------------------------------------------------------
--- Company:
--- Engineer:
---
--- Create Date: 04/02/2020 03:43:35 PM
--- Design Name:
--- Module Name: BRG - Behavioral
--- Project Name:
--- Target Devices:
--- Tool Versions:
--- Description:
---
+-------------------------------------------------------------------------------------------------------------
+-- Company     : RT-RK
+-- Project     :
+-------------------------------------------------------------------------------------------------------------
+-- File        : BRG.vhd
+-- Author(s)   : Nebojsa Markovic
+-- Created     : March 10th, 2020
+-- Modified    :
+-- Changes     :
+-------------------------------------------------------------------------------------------------------------
+-- Design Unit : BRG.vhd
+-- Library     :
+-------------------------------------------------------------------------------------------------------------
+-------------------------------------------------------------------------------------------------------------
+-- Description : Full BRG module
+--     BRG module is used to give G_SAMPLE_PER_BIT of clk_period width pulses.
+--     Puls density depends on number of clk pulses pr bit, given as input to the
+--     module on the i_prescaler pin
+----------------------------------------------------------------------------------------------------------------
 -- Dependencies:
 --
 -- Revision:
 -- Revision 0.01 - File Created
 -- Additional Comments:
---
-----------------------------------------------------------------------------------
+----------------------------------------------------------------------------------------------------------------
 
+library ieee;
+    use ieee.std_logic_1164.all;
+    use ieee.numeric_std.all;
 
-library IEEE;
-use IEEE.STD_LOGIC_1164.ALL;
+    use work.p_general.all;
 
--- Uncomment the following library declaration if using
--- arithmetic functions with Signed or Unsigned values
---use IEEE.NUMERIC_STD.ALL;
-
--- Uncomment the following library declaration if instantiating
--- any Xilinx leaf cells in this code.
---library UNISIM;
---use UNISIM.VComponents.all;
-use work.p_general.all;
 
 entity BRG is
-    generic(
-        G_RST_LEVEVEL      : RST_LEVEL := HL;                -- HL (High Level), LL(Low Level)
-        G_SAMPLE_USED      : boolean   := false;             --
-        G_SAMPLE_PER_BIT   : positive  := 13
-        );
-    port   (
-        i_clk              : in  std_logic;                      -- Input CLOCK
-        i_rst              : in  std_logic;                      -- Input Reset for clk
-        i_sample           : in  std_logic;                      -- Input Sample signal - comes from BAUD RATE GENERATOR- signal to sample input
-        i_ena              : in  std_logic;                      -- Input Uart Enable Signal
-        i_prescaler        : in  integer range 0 to 256;         --
-
-        o_sample           : out std_logic                       -- Sample signal
-        );
+    generic
+    (
+        --! Module Reset Level,
+        --! Data type: RST_LEVEL(type deined in p_general package), Default value: HL
+        G_RST_LEVEVEL    : RST_LEVEL := HL;
+        --! Use Sample Input,
+        --! Data Type: boolean, Default value: false
+        --!      true -> samples from the i_sample input are used to sample data
+        --!              i_prescaler is not used, G_SAMPLE_PER_BIT is fixed and should
+        --!              corespond to real samples value per bit
+        --!      false ->samples are generated in the module based on the i_prescaler
+        --!              and G_SAMPLE_PER_BIT values
+        G_SAMPLE_USED    : boolean   := false;
+        --! Number of samples per one bit,
+        --! Data Type: positive, Default value 13
+        --! Sampling starts after START bit is detected on the module's input
+        G_SAMPLE_PER_BIT : positive  := 13;           --
+        --! Data Width,
+        --! Data Type: positive, Default value: 8
+        G_DATA_WIDTH     : positive  := 8
+    );
+    port
+    (
+        --! Input CLOCK
+        i_clk              : in  std_logic;
+        --! Reset for input clk domain
+        i_rst              : in  std_logic;
+        -- Input Sample signal
+        i_sample           : in  std_logic;
+        --! BRG Enable Signal
+        --! Starts to give sample bits after enabled
+        i_ena              : in  std_logic;
+        --! Duration of one bit (expresed in number of clk cycles per bit)
+        i_prescaler        : in  unsigned(31 downto 0);
+        --! Sample trigger signal
+        o_sample           : out std_logic
+    );
 end BRG;
 
 architecture Behavioral of BRG is
+
     type TYPE_BRG_REG is record
-        brs        : std_logic;
-        cnt        : integer range 0 to 15;
-        sample_cnt : integer range 0 to 256;
+        brs        : std_logic;                              -- baud rate sample
+        cnt        : integer range 0 to G_SAMPLE_PER_BIT +1; --
+        sample_cnt : unsigned(31 downto 0);                  --
     end record;
 
-    constant TYPE_BRG_REG_RST : TYPE_BRG_REG := (
+    constant TYPE_BRG_REG_RST : TYPE_BRG_REG :=
+    (
         brs        => '0',
         cnt        =>  0,
-        sample_cnt =>  0);
+        sample_cnt => (others => '0')
+    );
 
--- signal - takes High Level if there is active RESET on the module input
-signal s_reset    : std_logic;
--- signal - Registered inputs to the module
-signal r_brd      : TYPE_BRG_REG;
--- signal - Contains input values to be registered
-signal c_brd      : TYPE_BRG_REG;
+    -- constant - zeros used for comparation
+    constant zeros    : unsigned(G_DATA_WIDTH-1 downto 0) := (others => '0');
+
+    -- signal - takes High Level if there is active RESET on the module input
+    signal s_reset    : std_logic;
+    -- signal - Registered inputs to the module
+    signal r_brd      : TYPE_BRG_REG;
+    -- signal - Contains input values to be registered
+    signal c_brd      : TYPE_BRG_REG;
 
 begin
-
--------------------------------------------------------------------------------------------------------
---                             BRG
--------------------------------------------------------------------------------------------------------
 
     -- equals '1' if there is active reset on the rst input, otherwise equals '0'
     s_reset <= '1' when ((G_RST_LEVEVEL = HL and i_rst = '1') or (G_RST_LEVEVEL = LL and i_rst = '0'))
                    else '0';
 
-    synchronus_BRG_process:
+---------------------------------------------------------
+--         Sync process
+---------------------------------------------------------
+synchronus_BRG_process:
     process(i_clk)
     begin
         if (rising_edge(i_clk)) then
@@ -91,10 +118,14 @@ begin
     end process synchronus_BRG_process;
 
 
+---------------------------------------------------------
+--  Comb process when input sample signal is used
+---------------------------------------------------------
 smpl_gen_not_used:
 if G_SAMPLE_USED = true generate
     comb_process:
-    process(r_brd.brs, r_brd.cnt, r_brd.sample_cnt, i_sample, i_ena)
+    process(r_brd, i_sample, i_ena)
+--    process(r_brd.brs, r_brd.cnt, r_brd.sample_cnt, i_sample, i_ena)
         variable V : TYPE_BRG_REG;
     begin
         V     := r_brd;
@@ -107,23 +138,31 @@ if G_SAMPLE_USED = true generate
     end process comb_process;
 end generate smpl_gen_not_used;
 
+
+---------------------------------------------------------
+--  Comb process when input sample signal is not used
+---------------------------------------------------------
 smpl_gen_used:
 if G_SAMPLE_USED = false generate
     comb_process:
-        process(r_brd.brs, r_brd.cnt, r_brd.sample_cnt, i_prescaler, i_ena)
+--        process(r_brd.brs, r_brd.cnt, r_brd.sample_cnt, i_prescaler, i_ena)
+        process(r_brd, i_prescaler, i_ena)
             variable V : TYPE_BRG_REG;
         begin
+            -- assign registered values to the variable
+            V   := r_brd;
 
-            V := r_brd;
-
-            V.sample_cnt := (i_prescaler/2) / G_SAMPLE_PER_BIT;
-            if ((i_prescaler/2) / G_SAMPLE_PER_BIT) = 0 then
-                V.sample_cnt := i_prescaler/4;
+            if  V.sample_cnt = zeros then
+                -- i_prescaler / 2
+                V.sample_cnt := i_prescaler srl 2;
+            else
+                -- i_prescaler / G_SAMPLE_PER_BIT
+                V.sample_cnt := i_prescaler / G_SAMPLE_PER_BIT;  --i_prescaler srl G_SAMPLE_PER_BIT;-- 
             end if;
 
             if i_ena = '1' then
                 if r_brd.sample_cnt /= 0 then
-                    if (r_brd.cnt = r_brd.sample_cnt) then
+                    if (r_brd.cnt = to_integer(r_brd.sample_cnt)) then
                         V.brs := '1';
                         V.cnt :=  0;
                     else
@@ -133,8 +172,8 @@ if G_SAMPLE_USED = false generate
                 end if;
             end if;
 
-        c_brd <= V;
-    end process comb_process;
+            c_brd <= V;
+        end process comb_process;
 end generate smpl_gen_used;
 
 -------------------------------------------------------------------------------------------------------

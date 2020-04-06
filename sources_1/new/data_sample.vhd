@@ -1,73 +1,81 @@
-----------------------------------------------------------------------------------
--- Company: 
--- Engineer: 
--- 
--- Create Date: 04/02/2020 03:33:42 PM
--- Design Name: 
--- Module Name: data_sample - Behavioral
--- Project Name: 
--- Target Devices: 
--- Tool Versions: 
--- Description: 
--- 
+-------------------------------------------------------------------------------------------------------------
+-- Company     : RT-RK
+-- Project     :
+-------------------------------------------------------------------------------------------------------------
+-- File        : data_sample.vhd
+-- Author(s)   : Nebojsa Markovic
+-- Created     : March 10th, 2020
+-- Modified    :
+-- Changes     :
+-------------------------------------------------------------------------------------------------------------
+-- Design Unit : data_sample.vhd
+-- Library     :
+-------------------------------------------------------------------------------------------------------------
+-- Description : Full data_sample module
+--     data_sample module is used to sample input data G_SAMPLE_PER_BIT times,
+--     after which output value is decided.
+--     Output signal has one bit duration latency
+----------------------------------------------------------------------------------------------------------------
 -- Dependencies: 
--- 
+--     BRG.vhd
+--
 -- Revision:
 -- Revision 0.01 - File Created
 -- Additional Comments:
--- 
-----------------------------------------------------------------------------------
+----------------------------------------------------------------------------------------------------------------
 
+library ieee;
+    use ieee.std_logic_1164.all;
+    use ieee.numeric_std.all;
 
-library IEEE;
-use IEEE.STD_LOGIC_1164.ALL;
-
--- Uncomment the following library declaration if using
--- arithmetic functions with Signed or Unsigned values
---use IEEE.NUMERIC_STD.ALL;
-
--- Uncomment the following library declaration if instantiating
--- any Xilinx leaf cells in this code.
---library UNISIM;
---use UNISIM.VComponents.all;
-use work.p_general.all;
+    use work.p_general.all;
+    use work.p_uart.all;
 
 entity data_sample is
-    generic(
-        G_RST_LEVEVEL      : RST_LEVEL     := HL;        -- HL (High Level), LL(Low Level)
-        G_SAMPLE_USED      : boolean       := false;     --
-		  G_SAMPLE_PER_BIT   : positive      := 13
-        );
-    port   (
-        i_clk              : in  std_logic;                      -- Input CLOCK
-        i_rst              : in  std_logic;                      -- Input Reset for clk
-        i_sample           : in  std_logic;                      -- Input Sample signal - comes from BAUD RATE GENERATOR- signal to sample input
-        i_ena              : in  std_logic;                      -- Input Uart Enable Signal
-        i_prescaler        : in  integer range 0 to 256;
-        i_rxd              : in  std_logic;                      -- Input Reciveve Data bus Line
+    generic
+	 (
+        --! Module Reset Level,
+        --! Data type: RST_LEVEL(type deined in p_general package), Default value: HL
+        G_RST_LEVEVEL      : RST_LEVEL     := HL;
+        --! Use Sample Input,
+        --! Data Type: boolean, Default value: false
+        --!      true -> samples from the i_sample input are used to sample data
+        --!              i_prescaler is not used, G_SAMPLE_PER_BIT is fixed and should
+        --!              corespond to real samples value per bit
+        --!      false ->samples are generated in the module based on the i_prescaler
+        --!              and G_SAMPLE_PER_BIT values
+        G_SAMPLE_USED      : boolean       := false;
+        --! Number of samples per one bit,
+        --! Data Type: positive, Default value 13
+        --! Sampling starts after START bit is detected on the module's input
+		  G_SAMPLE_PER_BIT   : positive      := 13;
+        --! Data Width,
+        --! Data Type: positive, Default value: 8
+		  G_DATA_WIDTH       : positive      := 8
+    );
+    port
+	 (
+        --! Input CLOCK
+        i_clk              : in  std_logic;
+        --! Reset for input clk domain
+        i_rst              : in  std_logic;
+        --! Input Sample signal
+        i_sample           : in  std_logic;
+        --! Module Enable Signal
+        --! Starts to sample i_rxd after enabled
+        i_ena              : in  std_logic;
+        --! Duration of one bit (expresed in number of clk cycles per bit)
+        i_prescaler        : in  unsigned(31 downto 0);
+        --! Input Reciveve Data Bus Line
+        i_rxd              : in  std_logic;
+        --! Valid Data on the output
         o_valid            : out std_logic;
-        o_rxd              : out std_logic                       -- Output Recieved Data
-        );
+        --! Outpu Data value
+        o_rxd              : out std_logic
+    );
 end data_sample;
 
 architecture Behavioral of data_sample is
-
-component BRG
-    generic(
-        G_RST_LEVEVEL      : RST_LEVEL;                -- HL (High Level), LL(Low Level)
-        G_SAMPLE_USED      : boolean;                  -- 
-		  G_SAMPLE_PER_BIT   : positive
-        );
-    port   (
-        i_clk              : in  std_logic;                      -- Input CLOCK
-        i_rst              : in  std_logic;                      -- Input Reset for clk
-        i_sample           : in  std_logic;                      -- Input Sample signal - comes from BAUD RATE GENERATOR- signal to sample input
-        i_ena              : in  std_logic;                      -- Input Uart Enable Signal
-        i_prescaler        : in  integer range 0 to 256;         --
-
-        o_sample           : out std_logic                       -- Sample signal
-        );
-end component BRG;
 
     -- Inputs registered
     type TYPE_IN_REG is record
@@ -75,8 +83,8 @@ end component BRG;
         ena         : std_logic;                      -- Input Uart Enable Signal
         rxd         : std_logic;                      -- Input Reciveve Data bus Line
         valid       : std_logic;
-        sample_1s   : integer range 0 to 16;
-        sample_0s   : integer range 0 to 16;
+        sample_1s   : integer range 0 to (G_SAMPLE_PER_BIT +1);
+        sample_0s   : integer range 0 to (G_SAMPLE_PER_BIT +1);
     end record;
 
     -- Reset Values for TYPE_IN_REG type data
@@ -108,21 +116,25 @@ begin
 -------------------------------------------------------------------------------------------------------
 --        BRG Instance
 -------------------------------------------------------------------------------------------------------
-BRG_inst_0: BRG
-    generic map(
-        G_RST_LEVEVEL    => G_RST_LEVEVEL,          -- HL (High Level), LL(Low Level)
-        G_SAMPLE_USED    => G_SAMPLE_USED,          -- 
-		  G_SAMPLE_PER_BIT => G_SAMPLE_PER_BIT
-        )
-    port map(
-        i_clk       => i_clk,                   -- Input CLOCK
-        i_rst       => i_rst,                     -- Input Reset for clk
-        i_sample    => i_sample,                    -- Input Sample signal - comes from BAUD RATE GENERATOR- signal to sample input
-        i_ena       => i_ena,                  -- Input Uart Enable Signal
-        i_prescaler => i_prescaler,       --
+BRG_inst_0:
+    BRG
+    generic map
+	 (
+        G_RST_LEVEVEL    => G_RST_LEVEVEL,    -- HL (High Level), LL(Low Level)
+        G_SAMPLE_USED    => G_SAMPLE_USED,    -- 
+		  G_SAMPLE_PER_BIT => G_SAMPLE_PER_BIT, -- 
+		  G_DATA_WIDTH     => G_DATA_WIDTH      -- 
+    )
+    port map
+	 (
+        i_clk            => i_clk,            -- Input CLOCK
+        i_rst            => i_rst,            -- Input Reset for clk
+        i_sample         => i_sample,         -- Input Sample signal - comes from BAUD RATE GENERATOR- signal to sample input
+        i_ena            => i_ena,            -- Input Uart Enable Signal
+        i_prescaler      => i_prescaler,      --
 
-        o_sample    => s_sample                -- Sample signal
-        );
+        o_sample         => s_sample          -- Sample signal
+    );
 
 
 -------------------------------------------------------------------------------------------------------
@@ -144,9 +156,9 @@ reg_in_proc:
     end process reg_in_proc;
 
 comb_in_proc:
---    process(i_reg, i_ena, i_rxd, i_data_accepted, s_sample)
-    process(i_reg.sample, i_reg.ena, i_reg.rxd, i_reg.sample_1s, i_reg.sample_0s,
-            i_ena, i_rxd, s_sample)
+    process(i_reg, i_ena, i_rxd, s_sample)
+--    process(i_reg.sample, i_reg.ena, i_reg.rxd, i_reg.sample_1s, i_reg.sample_0s,
+--            i_ena, i_rxd, s_sample)
         variable V         : TYPE_IN_REG;
     begin
         V          := i_reg;
@@ -163,7 +175,7 @@ comb_in_proc:
             end if;
         end if;
 
-        if (i_reg.sample_1s + i_reg.sample_0s = G_SAMPLE_PER_BIT) then
+        if (i_reg.sample_1s + i_reg.sample_0s = G_SAMPLE_PER_BIT -1) then
             if (i_reg.sample_1s >= i_reg.sample_0s) then
                 V.rxd      := '1';
             else
