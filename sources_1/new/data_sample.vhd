@@ -16,7 +16,7 @@
 --     after which output value is decided.
 --     Output signal has one bit duration latency
 ----------------------------------------------------------------------------------------------------------------
--- Dependencies: 
+-- Dependencies:
 --     BRG.vhd
 --
 -- Revision:
@@ -33,7 +33,7 @@ library ieee;
 
 entity data_sample is
     generic
-	 (
+     (
         --! Module Reset Level,
         --! Data type: RST_LEVEL(type deined in p_general package), Default value: HL
         G_RST_LEVEVEL      : RST_LEVEL     := HL;
@@ -48,13 +48,13 @@ entity data_sample is
         --! Number of samples per one bit,
         --! Data Type: positive, Default value 13
         --! Sampling starts after START bit is detected on the module's input
-		G_SAMPLE_PER_BIT   : positive      := 13;
+        G_SAMPLE_PER_BIT   : positive      := 13;
         --! Data Width,
         --! Data Type: positive, Default value: 8
         G_DATA_WIDTH       : positive      := 8
     );
     port
-	 (
+     (
         --! Input CLOCK
         i_clk              : in  std_logic;
         --! Reset for input clk domain
@@ -82,29 +82,58 @@ architecture Behavioral of data_sample is
         sample      : std_logic;                      -- Input Sample signal - comes from BAUD RATE GENERATOR- signal to sample input
         ena         : std_logic;                      -- Input Uart Enable Signal
         rxd         : std_logic;                      -- Input Reciveve Data bus Line
-        valid       : std_logic;
-        sample_1s   : integer range 0 to (G_SAMPLE_PER_BIT +1);
-        sample_0s   : integer range 0 to (G_SAMPLE_PER_BIT +1);
+        prescaler   : std_logic_vector(31 downto 0);
     end record;
 
     -- Reset Values for TYPE_IN_REG type data
     constant TYPE_IN_REG_RST : TYPE_IN_REG := (
         sample       => '0',
         ena          => '0',
-        rxd          => '1',
-        valid        => '0',
+        rxd          => '0',
+        prescaler    => (others => '0'));
+
+    -- Control registered
+    type TYPE_CTRL_REG is record
+        sample      : std_logic;                                -- registere sample signal
+        sample_1s   : integer range 0 to (G_SAMPLE_PER_BIT +1); -- number of samples equal to '1' in one bit duration
+        sample_0s   : integer range 0 to (G_SAMPLE_PER_BIT +1); -- number of samples equal to '0' in one bit duration
+    end record;
+
+    -- Reset Values for TYPE_CTRL_REG type data
+    constant TYPE_CTRL_REG_RST : TYPE_CTRL_REG := (
+        sample       => '0',
         sample_1s    =>  0,
         sample_0s    =>  0);
+
+    -- Outputs registered
+    type TYPE_OUT_REG is record
+        valid        : std_logic; -- valid registered signal value (after sampling of the input)
+        rxd          : std_logic; -- sampled input bus value
+    end record;
+
+    -- Reset Values for TYPE_IN_REG type data
+    constant TYPE_OUT_REG_RST : TYPE_OUT_REG := (
+        valid        => '0',
+        rxd          => '0');
 
     -- signal
     signal s_sample   : std_logic;
     -- signal - takes High Level if there is active RESET on the module input
     signal s_reset    : std_logic;
     -- signal - Registered inputs to the module
-    signal i_reg      : TYPE_IN_REG;
+    signal r_in      : TYPE_IN_REG;
     -- signal - Contains input values to be registered
-    signal c_to_i_reg : TYPE_IN_REG;
+    signal c_in      : TYPE_IN_REG;
 
+    -- signal - Registered inputs to the module
+    signal r_ctrl    : TYPE_CTRL_REG;
+    -- signal - Contains input values to be registered
+    signal c_ctrl    : TYPE_CTRL_REG;
+
+    -- signal - Registered inputs to the module
+    signal r_out     : TYPE_OUT_REG;
+    -- signal - Contains input values to be registered
+    signal c_out     : TYPE_OUT_REG;
 
 begin
 
@@ -114,86 +143,139 @@ begin
 
 
 -------------------------------------------------------------------------------------------------------
---        BRG Instance
--------------------------------------------------------------------------------------------------------
-BRG_inst_0:
-    BRG
-    generic map
-	 (
-        G_RST_LEVEVEL    => G_RST_LEVEVEL,    -- HL (High Level), LL(Low Level)
-        G_SAMPLE_USED    => G_SAMPLE_USED,    -- 
-		  G_SAMPLE_PER_BIT => G_SAMPLE_PER_BIT, -- 
-		  G_DATA_WIDTH     => G_DATA_WIDTH      -- 
-    )
-    port map
-	 (
-        i_clk            => i_clk,            -- Input CLOCK
-        i_rst            => i_rst,            -- Input Reset for clk
-        i_sample         => i_sample,         -- Input Sample signal - comes from BAUD RATE GENERATOR- signal to sample input
-        i_ena            => i_ena,            -- Input Uart Enable Signal
-        i_prescaler      => i_prescaler,      --
-
-        o_sample         => s_sample          -- Sample signal
-    );
-
-
--------------------------------------------------------------------------------------------------------
 --        Registring Inputs
 -------------------------------------------------------------------------------------------------------
 
--- If RST is active assign reset value to i_reg,
--- else, register c_to_i_reg value as i_reg
+-- If RST is active assign reset value to r_in,
+-- else, register c_in value as r_in
 reg_in_proc:
     process(i_clk)
     begin
         if rising_edge(i_clk) then
             if(s_reset = '1') then
-                i_reg      <= TYPE_IN_REG_RST;
+                r_in      <= TYPE_IN_REG_RST;
             else
-                i_reg      <= c_to_i_reg;
+                r_in      <= c_in;
             end if;
         end if;
     end process reg_in_proc;
 
 comb_in_proc:
---    process(i_reg, i_ena, i_rxd, s_sample)
-    process(i_reg.sample ,i_reg.ena , i_reg.rxd , i_reg.valid ,i_reg.sample_1s , i_reg.sample_0s , 
-            i_ena, i_rxd, s_sample)
+    process(r_in, i_ena, i_rxd, i_prescaler, i_sample)
         variable V         : TYPE_IN_REG;
     begin
-        V          := i_reg;
+        V           := r_in;
 
-        V.sample   := s_sample;
-        V.ena      := i_ena;
-        V.valid    := '0';
+        V.sample    := '0';
+        if (G_SAMPLE_USED = true) then
+            V.sample    := i_sample;
+        end if;
 
-        if s_sample = '1' and i_reg.sample = '0' then
-            if (i_rxd = '1') then
-                V.sample_1s:= i_reg.sample_1s +1;
+        V.ena       := i_ena;
+        V.prescaler := i_prescaler;
+
+        V.rxd       := '1';
+        if(r_in.ena = '1') then
+            V.rxd       := i_rxd;
+        end if;
+
+        c_in <= V;
+    end process comb_in_proc;
+
+-------------------------------------------------------------------------------------------------------
+--        Registring Control and Outputs
+-------------------------------------------------------------------------------------------------------
+-- If RST is active assign reset value to r_in,
+-- else, register c_in value as r_in
+reg_out_proc:
+    process(i_clk)
+    begin
+        if rising_edge(i_clk) then
+            if(s_reset = '1') then
+                r_out       <= TYPE_OUT_REG_RST;
             else
-                V.sample_0s:= i_reg.sample_0s +1;
+                r_out       <= c_out;
+            end if;
+        end if;
+    end process reg_out_proc;
+
+reg_ctrl_proc:
+    process(i_clk)
+    begin
+        if rising_edge(i_clk) then
+            if(s_reset = '1') then
+                r_ctrl      <= TYPE_CTRL_REG_RST;
+            else
+                r_ctrl      <= c_ctrl;
+            end if;
+        end if;
+    end process reg_ctrl_proc;
+
+
+
+comb_out_proc:
+    process(r_in, r_out, r_ctrl, s_sample)
+        variable V_ctrl      : TYPE_CTRL_REG;
+        variable V_out       : TYPE_OUT_REG;
+    begin
+        V_ctrl     := r_ctrl;
+        V_out      := r_out;
+
+        V_ctrl.sample   := s_sample;
+        V_out.valid     := '0';
+
+        if s_sample = '1' and r_ctrl.sample = '0' then
+            if (r_in.rxd = '1') then
+                V_ctrl.sample_1s:= r_ctrl.sample_1s +1;
+            else
+                V_ctrl.sample_0s:= r_ctrl.sample_0s +1;
             end if;
         end if;
 
-        if (i_reg.sample_1s + i_reg.sample_0s = G_SAMPLE_PER_BIT -1) then
-            if (i_reg.sample_1s >= i_reg.sample_0s) then
-                V.rxd      := '1';
+        if (r_ctrl.sample_1s + r_ctrl.sample_0s = G_SAMPLE_PER_BIT) then
+            if (r_ctrl.sample_1s >= r_ctrl.sample_0s) then
+                V_out.rxd      := '1';
             else
-                V.rxd      := '0';
+                V_out.rxd      := '0';
             end if;
-            V.valid    := '1';
-            V.sample_1s:=  0;
-            V.sample_0s:=  0;
+            V_out.valid      := '1';
+            V_ctrl.sample_1s :=  0;
+            V_ctrl.sample_0s :=  0;
         end if;
         -- Assign valuses that should be registered
-        c_to_i_reg <= V;
-    end process comb_in_proc;
+        c_ctrl <= V_ctrl;
+        c_out  <= V_out;
+    end process comb_out_proc;
+
+
+
+-------------------------------------------------------------------------------------------------------
+--        BRG Instance
+-------------------------------------------------------------------------------------------------------
+BRG_inst_0:
+    BRG
+    generic map
+    (
+        G_RST_LEVEVEL    => G_RST_LEVEVEL,
+        G_SAMPLE_USED    => G_SAMPLE_USED,
+        G_SAMPLE_PER_BIT => G_SAMPLE_PER_BIT,
+        G_DATA_WIDTH     => G_DATA_WIDTH
+    )
+    port map
+    (
+        i_clk            => i_clk,            -- Input CLOCK
+        i_rst            => i_rst,            -- Input Reset for clk
+        i_sample         => r_in.sample,      -- Input Sample signal - comes from BAUD RATE GENERATOR- signal to sample input
+        i_ena            => r_in.ena,         -- Input Uart Enable Signal
+        i_prescaler      => r_in.prescaler,   -- Number of clock cycles in one bit
+        o_sample         => s_sample          -- Sample signal
+    );
 
 
 -------------------------------------------------------------------------------------------------------
 --        Outputs Assigment
 -------------------------------------------------------------------------------------------------------
-    o_valid       <= i_reg.valid;
-    o_rxd         <= i_reg.rxd;                      -- Break Detected
+    o_valid       <= r_out.valid;
+    o_rxd         <= r_out.rxd;
 
 end Behavioral;

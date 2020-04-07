@@ -62,7 +62,7 @@ entity uart_rx is
         --! NONE(Parity not used), ODD(odd parity), EVEN(Even parity)
         G_USE_PARITY       : U_PARITY  := NONE
         );
-    port   
+    port
     (
         --! Input CLOCK
         i_clk           : in  std_logic;
@@ -80,7 +80,7 @@ architecture Behavioral of uart_rx is
     -- UART FSM states
     type TYPE_UART_FSM is (IDLE, START_BIT, UART_MSG, PARITY, STOP_BIT);
 
-    -- Siginficant values that would be forvarded to output or used for checks in code
+    -- Registered valid signal from data_sample module
     type TYPE_CTRL_IN_REG is record
         valid       : std_logic;
     end record;
@@ -142,7 +142,9 @@ begin
     -- equals '1' if there is active reset on the rst input, otherwise equals '0'
     s_reset <= '1' when ((G_RST_LEVEVEL = HL and i_rst = '1') or (G_RST_LEVEVEL = LL and i_rst = '0'))
                    else '0';
-
+--------------------------------------------------------------------------------------------------------
+--              Data Sample Module Instance
+--------------------------------------------------------------------------------------------------------
   DS_inst_0:
   data_sample
       generic map (
@@ -160,20 +162,21 @@ begin
           o_rxd         => s_rxd );
 
 
+data_sample_en:
     process(i_clk)
-     begin
-         if rising_edge(i_clk) then
-             if(s_reset = '1') then
-                  s_sampler_en <= '0';
-              else
-                  if(r_in.ena = '1' and i_uart.rxd = '0') then
-                         s_sampler_en <= '1';
-                     elsif(r_out.valid = '1') then
-                         s_sampler_en <= '0';
-                     end if;
-              end if;
-         end if;
-    end process;
+    begin
+        if rising_edge(i_clk) then
+            if(s_reset = '1') then
+                s_sampler_en <= '0';
+            else
+                if(r_in.ena = '1' and i_uart.rxd = '0') then
+                    s_sampler_en <= '1';
+                elsif(r_out.valid = '1') then
+                    s_sampler_en <= '0';
+                end if;
+            end if;
+        end if;
+    end process data_sample_en;
 -------------------------------------------------------------------------------------------------------
 --        Registring Inputs
 -------------------------------------------------------------------------------------------------------
@@ -216,7 +219,7 @@ comb_in_proc:
         -- Assign valuses that should be registered
         c_in      <= V;
         c_in_ctrl <= V_ctrl;
-		  
+
     end process comb_in_proc;
 
 -------------------------------------------------------------------------------------------------------

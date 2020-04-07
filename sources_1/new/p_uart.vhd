@@ -60,7 +60,7 @@ package p_uart is
     -- Inputs registered
     type TYPE_UART_IN is record
         ena         : std_logic;             -- Input Uart Enable Signal
-        prescaler   : unsigned(31 downto 0); -- 
+        prescaler   : std_logic_vector(31 downto 0); -- 
         rxd         : std_logic;             -- Input Reciveve Data bus Line
         data_acc    : std_logic;             -- Input Data Recieved througth UART are stored/used
     end record;

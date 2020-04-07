@@ -238,7 +238,7 @@ if G_SAMPLE_USED = false generate
         V_out    := r_out;
 
         -- i_prescaler / G_SAMPLE_PER_BIT
-        V_ctrl.clk_per_smpl := r_in.prescaler / G_SAMPLE_PER_BIT;
+        V_ctrl.clk_per_smpl := (r_in.prescaler/(G_SAMPLE_PER_BIT +1));
         if  V_ctrl.clk_per_smpl = zeros then
             -- i_prescaler / 2
             V_ctrl.clk_per_smpl := r_in.prescaler srl 1;
@@ -246,16 +246,17 @@ if G_SAMPLE_USED = false generate
 
         V_out.brs := '0';
         if r_in.ena = '1' then
-            V_ctrl.sample_num  := r_ctrl.sample_num  +1;
-            if (r_ctrl.sample_num = to_integer(r_ctrl.clk_per_smpl)) then
-                 V_out.brs := '1';
-                 V_ctrl.sample_num :=  0;
-            end if;
 
             V_ctrl.clk_per_bit := r_ctrl.clk_per_bit +1;
             if (r_ctrl.clk_per_bit = r_in.prescaler) then
                  V_ctrl.clk_per_bit := (others => '0');
                  V_ctrl.sample_num  :=  0;
+				else
+                V_ctrl.sample_num  := r_ctrl.sample_num  +1;
+                if (r_ctrl.sample_num = to_integer(r_ctrl.clk_per_smpl)) then
+                    V_out.brs := '1';
+                    V_ctrl.sample_num :=  0;
+                end if;
             end if;
         end if;
 

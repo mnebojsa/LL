@@ -70,7 +70,7 @@ entity uart_rx_top is
         --! Uart Enable Signal
         i_ena           : in  std_logic;
         --! Duration of one bit (expresed in number of clk cycles per bit)
-        i_prescaler     : in  unsigned(31 downto 0);
+        i_prescaler     : in  std_logic_vector(31 downto 0);
         --! Reciveve Data bus Line
         i_rxd           : in  std_logic;
         --! Data Recieved througth UART are stored/used
@@ -122,7 +122,7 @@ begin
             o_uart.framein_err   => o_framein_err,
             o_uart.parity_err    => o_parity_err,
             o_uart.rx_data       => o_rx_data,
-            o_uart.valid         => o_valid 
+            o_uart.valid         => o_valid
         );
 
 end Behavioral;
