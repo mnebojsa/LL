@@ -1,3 +1,29 @@
+-------------------------------------------------------------------------------------------------------------
+-- Company     : RT-RK
+-- Project     :
+-------------------------------------------------------------------------------------------------------------
+-- File        : BRG_tb.vhd
+-- Author(s)   : Nebojsa Markovic
+-- Created     : March 10th, 2020
+-- Modified    :
+-- Changes     :
+-------------------------------------------------------------------------------------------------------------
+-- Design Unit : BRG_tb.vhd
+-- Library     :
+-------------------------------------------------------------------------------------------------------------
+-------------------------------------------------------------------------------------------------------------
+-- Description : Full BRG_tb module
+--
+--
+--
+----------------------------------------------------------------------------------------------------------------
+-- Dependencies:
+--
+-- Revision:
+-- Revision 0.01 - File Created
+-- Additional Comments:
+----------------------------------------------------------------------------------------------------------------
+
 library ieee;
     use ieee.std_logic_1164.all;
     use ieee.numeric_std.all;
@@ -9,7 +35,7 @@ entity BRG_tb is
     generic
     (
         G_RST_LEVEVEL      : RST_LEVEL := HL;
-        G_SAMPLE_USED      : boolean   := true;
+        G_SAMPLE_USED      : boolean   := false;
         G_SAMPLE_PER_BIT   : positive  := 13;
         G_DATA_WIDTH       : positive  := 8
     );
@@ -20,23 +46,9 @@ architecture bench of BRG_tb is
   component BRG
       generic
       (
-          --! Module Reset Level,
-          --! Data type: RST_LEVEL(type deined in p_general package), Default value: HL
           G_RST_LEVEVEL    : RST_LEVEL := HL;
-          --! Use Sample Input,
-          --! Data Type: boolean, Default value: false
-          --!      true -> samples from the i_sample input are used to sample data
-          --!              i_prescaler is not used, G_SAMPLE_PER_BIT is fixed and should
-          --!              corespond to real samples value per bit
-          --!      false ->samples are generated in the module based on the i_prescaler
-          --!              and G_SAMPLE_PER_BIT values
           G_SAMPLE_USED    : boolean   := false;
-          --! Number of samples per one bit,
-          --! Data Type: positive, Default value 13
-          --! Sampling starts after START bit is detected on the module's input
-          G_SAMPLE_PER_BIT : positive  := 13;           --
-          --! Data Width,
-          --! Data Type: positive, Default value: 8
+          G_SAMPLE_PER_BIT : positive  := 13;
           G_DATA_WIDTH     : positive  := 8
       );
       port
@@ -51,7 +63,7 @@ architecture bench of BRG_tb is
            --! Starts to give sample bits after enabled
            i_ena              : in  std_logic;
            --! Duration of one bit (expresed in number of clk cycles per bit)
-           i_prescaler        : in  unsigned(31 downto 0);
+           i_prescaler        : in  std_logic_vector(31 downto 0);
            --! Sample trigger signal
            o_sample           : out std_logic
       );
@@ -61,7 +73,7 @@ architecture bench of BRG_tb is
   signal i_rst       : std_logic;
   signal i_sample    : std_logic;
   signal i_ena       : std_logic;
-  signal i_prescaler : unsigned(31 downto 0) := "00000000000000000000000001111101"; --125
+  signal i_prescaler : std_logic_vector(31 downto 0) := "00000000000000000000000001111101"; --125
   signal o_sample    : std_logic;
 
   constant clock_period: time := 10 ns;
@@ -69,7 +81,7 @@ architecture bench of BRG_tb is
 begin
 
   -- Insert values for generic parameters !!
-  uut:
+uut:
   BRG
   generic map
   (
@@ -89,7 +101,8 @@ begin
   );
 
 
-  st: process
+rest_enable_proc:
+  process
   begin
 
  -- Put initialisation code here
@@ -101,32 +114,35 @@ begin
         wait for clock_period * 10;
     i_ena <= '1';
         wait for clock_period * 10000;
-  end process;
+  end process rest_enable_proc;
 
-
+clk_process:
   process
   begin
       i_clk <= '0';
           wait for clock_period/2;
       i_clk <= '1';
           wait for clock_period/2;
-  end process;
+  end process clk_process;
 
-  stimulus: process
+stimulus:
+  process
   begin
-
-    -- Put initialisation code here
-    for i in 0 to 20 loop
-        i_sample <= '1';
-            wait for 10 ns;
-        i_sample <= '0';
-            wait for 30 ns;
-    end loop;
-
-    -- Put test bench stimulus code here
+    -- if G_SAMPLE_USED = true generate i_sample input
+    -- output is the same shape signal
+    if G_SAMPLE_USED = true then
+        -- Put initialisation code here
+        for i in 0 to 20 loop
+            i_sample <= '1';
+                wait for 10 ns;
+            i_sample <= '0';
+                wait for 30 ns;
+        end loop;
+    end if;
+    i_sample <= '0';
 
     wait;
-  end process;
+  end process stimulus;
 
 
 end;

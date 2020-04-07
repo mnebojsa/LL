@@ -48,10 +48,10 @@ entity data_sample is
         --! Number of samples per one bit,
         --! Data Type: positive, Default value 13
         --! Sampling starts after START bit is detected on the module's input
-		  G_SAMPLE_PER_BIT   : positive      := 13;
+		G_SAMPLE_PER_BIT   : positive      := 13;
         --! Data Width,
         --! Data Type: positive, Default value: 8
-		  G_DATA_WIDTH       : positive      := 8
+        G_DATA_WIDTH       : positive      := 8
     );
     port
 	 (
@@ -65,7 +65,7 @@ entity data_sample is
         --! Starts to sample i_rxd after enabled
         i_ena              : in  std_logic;
         --! Duration of one bit (expresed in number of clk cycles per bit)
-        i_prescaler        : in  unsigned(31 downto 0);
+        i_prescaler        : in  std_logic_vector(31 downto 0);
         --! Input Reciveve Data Bus Line
         i_rxd              : in  std_logic;
         --! Valid Data on the output
@@ -156,9 +156,9 @@ reg_in_proc:
     end process reg_in_proc;
 
 comb_in_proc:
-    process(i_reg, i_ena, i_rxd, s_sample)
---    process(i_reg.sample, i_reg.ena, i_reg.rxd, i_reg.sample_1s, i_reg.sample_0s,
---            i_ena, i_rxd, s_sample)
+--    process(i_reg, i_ena, i_rxd, s_sample)
+    process(i_reg.sample ,i_reg.ena , i_reg.rxd , i_reg.valid ,i_reg.sample_1s , i_reg.sample_0s , 
+            i_ena, i_rxd, s_sample)
         variable V         : TYPE_IN_REG;
     begin
         V          := i_reg;

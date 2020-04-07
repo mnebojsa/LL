@@ -60,7 +60,7 @@ entity uart_rx is
         --! Use Frameing Error detection,
         --! Data Type: U_PARITY(type deined in p_general package), Default value: NONE
         --! NONE(Parity not used), ODD(odd parity), EVEN(Even parity)
-        G_USE_PARITY       : U_PARITY  := ODD
+        G_USE_PARITY       : U_PARITY  := NONE
         );
     port   
     (
@@ -262,7 +262,7 @@ comb_out_proc:
 --            i_sample)
         variable V_ctrl    : TYPE_CTRL_REG;
         variable V_out     : TYPE_UART_OUT;
-        variable v_parity  : std_logic;
+
     begin
         V_out              := r_out;
         V_ctrl             := r_ctrl;
@@ -274,7 +274,7 @@ comb_out_proc:
                 -- Default FSM state (signals are in reset value)- waits for start bit
                 -- Sets Counter cnt depending on LSB or MSB data notation expected
                 when IDLE =>
-                    v_parity := '0';
+                    V_out.parity_err := '0';
                     if (i_uart.rxd = '0') then
                         V_ctrl := TYPE_CTRL_REG_RST;
                         V_out  := TYPE_UART_OUT_RST;
@@ -327,34 +327,31 @@ comb_out_proc:
                 -- If parity is not satisfied, parity error signal is rised
                 -- Next State is STOP_BIT
                 when PARITY =>
---                        V.fsm        := STOP_BIT;
---                        if (G_USE_PARITY = ODD) then
---                                  v_parity     := '0';
---                            if (r_in.rxd = f_parity(r_out.rx_data(G_DATA_WIDTH-1 downto 0))) then
---                                v_parity := '1';
---                            end if;
---                        end if;
---
---                        if (G_USE_PARITY = EVEN) then
---                            v_parity     := '0';
---                            if ( r_in.rxd = not(f_parity(r_out.rx_data(G_DATA_WIDTH-1 downto 0)))) then
---                                v_parity := '1';
---                            end if;
---                        end if;
---
---                    -- Last bit that signals end of the message - expected to be '1'
---                    -- Next State
---                    --      IDLE - when '1' is detected on the output
---                    --             rises frameing or overrun error if detected (when used)
---                    --             if tehere is no errors rises VALID data signal
---                    --      BREAK- if all data recieved are Zeros(and STOP bit is Zero) break is detected(if used)
+                    V_ctrl.fsm        := STOP_BIT;
+                    if (G_USE_PARITY = ODD) then
+                        V_out.parity_err     := '0';
+                        if (r_in.rxd = f_parity(r_out.rx_data(G_DATA_WIDTH-1 downto 0))) then
+                            V_out.parity_err := '1';
+                        end if;
+                    end if;
+
+                    if (G_USE_PARITY = EVEN) then
+                        V_out.parity_err     := '0';
+                        if ( r_in.rxd = not(f_parity(r_out.rx_data(G_DATA_WIDTH-1 downto 0)))) then
+                            V_out.parity_err := '1';
+                        end if;
+                    end if;
+
+                -- Last bit that signals end of the message - expected to be '1'
+                -- Next State
+                --      IDLE - when '1' is detected on the output
+                --             rises frameing or overrun error if detected (when used)
+                --             if tehere is no errors rises VALID data signal
+                --      BREAK- if all data recieved are Zeros(and STOP bit is Zero) break is detected(if used)
                 when STOP_BIT =>
                     if r_in_ctrl.valid = '1' and r_ctrl.valid_sample = '0' then
                         if (r_in.rxd = '1') then
                             V_out.valid := '1';
-
-                            V_out.parity_err := v_parity;
-                            v_parity     := '0';
 
                             if (r_out.overrun_err  = '1' or r_out.framein_err = '1' or V_out.parity_err  = '1') then
                                 V_out.valid := '0';
@@ -378,7 +375,7 @@ comb_out_proc:
                             -- Next state STOP_BIT
                                  if r_out.rx_data(G_DATA_WIDTH-1 downto 0) = zeros then
                                      V_out.framein_err := '0';
-                                     v_parity          := '0';
+                                     V_out.parity_err  := '0';
                                      V_out.break       := '1';
                                      V_out.valid       := '0';
                                      if (G_USE_FRAMEIN = true) then

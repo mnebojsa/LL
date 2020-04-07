@@ -10,8 +10,8 @@ entity data_sample_tb is
 	 (
        G_RST_LEVEVEL      : RST_LEVEL := HL;
        G_SAMPLE_USED      : boolean   := false;
-		 G_SAMPLE_PER_BIT   : positive  := 13;
-		 G_DATA_WIDTH       : POSITIVE  := 8
+       G_SAMPLE_PER_BIT   : positive  := 16;
+       G_DATA_WIDTH       : POSITIVE  := 8
     );
 end;
 
@@ -22,8 +22,8 @@ architecture bench of data_sample_tb is
 		(
           G_RST_LEVEVEL      : RST_LEVEL;
           G_SAMPLE_USED      : boolean;
-			 G_SAMPLE_PER_BIT   : positive;
-			 G_DATA_WIDTH       : positive
+          G_SAMPLE_PER_BIT   : positive;
+          G_DATA_WIDTH       : positive
       );
       port
 		(
@@ -31,7 +31,7 @@ architecture bench of data_sample_tb is
           i_rst           : in  std_logic;
           i_sample        : in  std_logic;
           i_ena           : in  std_logic;
-          i_prescaler     : in  unsigned(31 downto 0);
+          i_prescaler     : in  std_logic_vector(31 downto 0);
           i_rxd           : in  std_logic;
           o_valid         : out std_logic;
           o_rxd           : out std_logic
@@ -42,7 +42,7 @@ architecture bench of data_sample_tb is
   signal i_rst       : std_logic;
   signal i_sample    : std_logic;
   signal i_ena       : std_logic;
-  signal i_prescaler : unsigned(31 downto 0) := "00000000000000000000000001111101"; --125
+  signal i_prescaler : std_logic_vector(31 downto 0) := "00000000000000000000000001111101"; --125
   signal i_rxd       : std_logic;
   signal o_rxd       : std_logic;
   signal o_valid     : std_logic;

@@ -128,7 +128,7 @@ package p_uart is
             i_rst              : in  std_logic;                      -- Input Reset for clk
             i_sample           : in  std_logic;                      -- Input Sample signal - comes from BAUD RATE GENERATOR- signal to sample input
             i_ena              : in  std_logic;                      -- Input Uart Enable Signal
-            i_prescaler        : in  unsigned(31 downto 0);
+            i_prescaler        : in  std_logic_vector(31 downto 0);
             i_rxd              : in  std_logic;                      -- Input Reciveve Data bus Line
             o_valid            : out std_logic;                      -- Input Reciveve Data bus Line
             o_rxd              : out std_logic                       -- Output Recieved Data
@@ -149,7 +149,7 @@ package p_uart is
             i_rst            : in  std_logic;
             i_sample         : in  std_logic;
             i_ena            : in  std_logic;
-            i_prescaler      : in  unsigned(31 downto 0);
+            i_prescaler      : in  std_logic_vector(31 downto 0);
             o_sample         : out std_logic
         );
     end component;

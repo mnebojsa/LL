@@ -65,36 +65,64 @@ entity BRG is
         --! Starts to give sample bits after enabled
         i_ena              : in  std_logic;
         --! Duration of one bit (expresed in number of clk cycles per bit)
-        i_prescaler        : in  unsigned(31 downto 0);
+        i_prescaler        : in  std_logic_vector(31 downto 0);
         --! Sample trigger signal
         o_sample           : out std_logic
     );
 end BRG;
 
 architecture Behavioral of BRG is
-
-    type TYPE_BRG_REG is record
-        brs        : std_logic;                              -- baud rate sample
-        cnt        : integer range 0 to G_SAMPLE_PER_BIT +1; --
-        sample_cnt : unsigned(31 downto 0);                  --
+    -- Inputs registered
+    type TYPE_BRG_IN is record
+        sample     : std_logic;                    -- Sample from the Module's input
+        ena        : std_logic;                    -- Enable Module signal
+        prescaler  : unsigned(31 downto 0);        -- Duration of one bit (expresed in number of clk cycles per bit)
     end record;
 
-    constant TYPE_BRG_REG_RST : TYPE_BRG_REG :=
-    (
-        brs        => '0',
-        cnt        =>  0,
-        sample_cnt => (others => '0')
-    );
+    constant TYPE_BRG_IN_RST : TYPE_BRG_IN := (
+        sample     => '0',
+        ena        => '0',
+        prescaler  => (others => '0'));
+
+    type TYPE_CTRL_REG is record
+        sample_num   : integer range 0 to G_SAMPLE_PER_BIT +1; -- number of samples per bit
+        clk_per_smpl : unsigned(31 downto 0);                  -- number of clock cycles between the samples
+        clk_per_bit  : unsigned(35 downto 0);                  -- number of clock cycles per bit
+    end record;
+
+    constant TYPE_CTRL_REG_RST : TYPE_CTRL_REG := (
+        sample_num   =>  0,
+        clk_per_smpl => (others => '0'),
+        clk_per_bit  => (others => '0'));
+
+
+    type TYPE_BRG_OUT is record
+        brs          : std_logic;        -- baud rate sample
+    end record;
+
+    constant TYPE_BRG_OUT_RST : TYPE_BRG_OUT := (
+        brs          => '0');
 
     -- constant - zeros used for comparation
     constant zeros    : unsigned(G_DATA_WIDTH-1 downto 0) := (others => '0');
 
     -- signal - takes High Level if there is active RESET on the module input
     signal s_reset    : std_logic;
+
     -- signal - Registered inputs to the module
-    signal r_brd      : TYPE_BRG_REG;
+    signal r_in       : TYPE_BRG_IN;
     -- signal - Contains input values to be registered
-    signal c_brd      : TYPE_BRG_REG;
+    signal c_in       : TYPE_BRG_IN;
+
+    -- signal - Registered inputs to the module
+    signal r_ctrl     : TYPE_CTRL_REG;
+    -- signal - Contains input values to be registered
+    signal c_ctrl     : TYPE_CTRL_REG;
+
+    -- signal - Registered inputs to the module
+    signal r_out      : TYPE_BRG_OUT;
+    -- signal - Contains input values to be registered
+    signal c_out      : TYPE_BRG_OUT;
 
 begin
 
@@ -102,40 +130,93 @@ begin
     s_reset <= '1' when ((G_RST_LEVEVEL = HL and i_rst = '1') or (G_RST_LEVEVEL = LL and i_rst = '0'))
                    else '0';
 
----------------------------------------------------------
---         Sync process
----------------------------------------------------------
-synchronus_BRG_process:
+------------------------------------------------------------------------------------------------
+--             Registring Inputs
+------------------------------------------------------------------------------------------------
+
+sync_IN_process:
     process(i_clk)
     begin
         if (rising_edge(i_clk)) then
             if(s_reset = '1') then
-                r_brd <= TYPE_BRG_REG_RST;
+                r_in <= TYPE_BRG_IN_RST;
             else
-                r_brd <= c_brd;
+                r_in <= c_in;
             end if;
         end if;
-    end process synchronus_BRG_process;
+    end process sync_IN_process;
 
+
+comb_IN_process:
+    process(r_in, i_sample, i_ena, i_prescaler)
+        variable V : TYPE_BRG_IN;
+    begin
+        V           := r_in;
+
+        V.ena       := i_ena;
+
+        if(G_SAMPLE_USED = true) then
+            V.prescaler  := (others => '0');
+            if r_in.ena   = '1' then
+                V.sample := i_sample;
+            end if;
+        else
+            V.sample    := '0';
+            V.prescaler := unsigned(i_prescaler);
+        end if;
+
+        c_in <= V;
+    end process comb_IN_process;
+
+
+---------------------------------------------------------
+--         Sync process
+---------------------------------------------------------
+smpl_gen_not_used_ctrl:
+if G_SAMPLE_USED = false generate
+    sync_CTRL_process:
+        process(i_clk)
+        begin
+            if (rising_edge(i_clk)) then
+                if(s_reset = '1') then
+                    r_ctrl <= TYPE_CTRL_REG_RST;
+                else
+                    r_ctrl <= c_ctrl;
+                end if;
+            end if;
+        end process sync_CTRL_process;
+end generate smpl_gen_not_used_ctrl;
+
+sync_OUT_process:
+    process(i_clk)
+    begin
+        if (rising_edge(i_clk)) then
+            if(s_reset = '1') then
+                r_out <= TYPE_BRG_OUT_RST;
+            else
+                r_out <= c_out;
+            end if;
+        end if;
+    end process sync_OUT_process;
 
 ---------------------------------------------------------
 --  Comb process when input sample signal is used
 ---------------------------------------------------------
 smpl_gen_not_used:
 if G_SAMPLE_USED = true generate
-    comb_process:
-    process(r_brd, i_sample, i_ena)
---    process(r_brd.brs, r_brd.cnt, r_brd.sample_cnt, i_sample, i_ena)
-        variable V : TYPE_BRG_REG;
+    comb_OUT_process:
+    process(r_ctrl, r_in)
+--    process(r_ctrl.brs, r_ctrl.sample_num, r_ctrl.clk_per_smpl, i_sample, i_ena)
+        variable V : TYPE_BRG_OUT;
     begin
-        V     := r_brd;
+        V     := r_out;
 
-        if i_ena = '1' then
-            V.brs := i_sample;
+        if r_in.ena = '1' then
+            V.brs := r_in.sample;
         end if;
 
-        c_brd <= V;
-    end process comb_process;
+        c_out <= V;
+    end process comb_OUT_process;
 end generate smpl_gen_not_used;
 
 
@@ -145,40 +226,47 @@ end generate smpl_gen_not_used;
 smpl_gen_used:
 if G_SAMPLE_USED = false generate
     comb_process:
---        process(r_brd.brs, r_brd.cnt, r_brd.sample_cnt, i_prescaler, i_ena)
-        process(r_brd, i_prescaler, i_ena)
-            variable V : TYPE_BRG_REG;
-        begin
-            -- assign registered values to the variable
-            V   := r_brd;
+--        process(r_out, r_ctrl, r_in)
+    process(r_out.brs,
+            r_ctrl.sample_num ,r_ctrl.clk_per_smpl ,r_ctrl.clk_per_bit,
+            r_in.prescaler , r_in.ena )
+        variable V_ctrl : TYPE_CTRL_REG;
+        variable V_out  : TYPE_BRG_OUT;
+    begin
+        -- assign registered values to the variable
+        V_ctrl   := r_ctrl;
+        V_out    := r_out;
 
-            if  V.sample_cnt = zeros then
-                -- i_prescaler / 2
-                V.sample_cnt := i_prescaler srl 2;
-            else
-                -- i_prescaler / G_SAMPLE_PER_BIT
-                V.sample_cnt := i_prescaler / G_SAMPLE_PER_BIT;  --i_prescaler srl G_SAMPLE_PER_BIT;-- 
+        -- i_prescaler / G_SAMPLE_PER_BIT
+        V_ctrl.clk_per_smpl := r_in.prescaler / G_SAMPLE_PER_BIT;
+        if  V_ctrl.clk_per_smpl = zeros then
+            -- i_prescaler / 2
+            V_ctrl.clk_per_smpl := r_in.prescaler srl 1;
+        end if;
+
+        V_out.brs := '0';
+        if r_in.ena = '1' then
+            V_ctrl.sample_num  := r_ctrl.sample_num  +1;
+            if (r_ctrl.sample_num = to_integer(r_ctrl.clk_per_smpl)) then
+                 V_out.brs := '1';
+                 V_ctrl.sample_num :=  0;
             end if;
 
-            if i_ena = '1' then
-                if r_brd.sample_cnt /= 0 then
-                    if (r_brd.cnt = to_integer(r_brd.sample_cnt)) then
-                        V.brs := '1';
-                        V.cnt :=  0;
-                    else
-                        V.brs := '0';
-                        V.cnt := r_brd.cnt +1;
-                    end if;
-                end if;
+            V_ctrl.clk_per_bit := r_ctrl.clk_per_bit +1;
+            if (r_ctrl.clk_per_bit = r_in.prescaler) then
+                 V_ctrl.clk_per_bit := (others => '0');
+                 V_ctrl.sample_num  :=  0;
             end if;
+        end if;
 
-            c_brd <= V;
-        end process comb_process;
+        c_ctrl <= V_ctrl;
+        c_out  <= V_out;
+    end process comb_process;
 end generate smpl_gen_used;
 
 -------------------------------------------------------------------------------------------------------
 --                             OUPUTS
 -------------------------------------------------------------------------------------------------------
-    o_sample <= r_brd.brs;
+    o_sample <= r_out.brs;
 
 end Behavioral;
