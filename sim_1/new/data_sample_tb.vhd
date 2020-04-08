@@ -54,23 +54,15 @@ architecture bench of data_sample_tb is
         (
           i_clk           : in  std_logic;
           i_rst           : in  std_logic;
-          i_sample        : in  std_logic;
-          i_ena           : in  std_logic;
-          i_prescaler     : in  std_logic_vector(31 downto 0);
-          i_rxd           : in  std_logic;
-          o_valid         : out std_logic;
-          o_rxd           : out std_logic
+          i_ds            : in  TYPE_IN_DS;  -- Input to Sample module
+          o_ds            : out TYPE_OUT_DS  -- Outpus from Sample Module
       );
   end component;
 
   signal i_clk       : std_logic;
   signal i_rst       : std_logic;
-  signal i_sample    : std_logic;
-  signal i_ena       : std_logic;
-  signal i_prescaler : std_logic_vector(31 downto 0);
-  signal i_rxd       : std_logic;
-  signal o_rxd       : std_logic;
-  signal o_valid     : std_logic;
+  signal i_ds        : TYPE_IN_DS;
+  signal o_ds        : TYPE_OUT_DS;
 
   -- helper signals
   signal s_data_to_send : std_logic_vector(0 to G_DATA_WIDTH +1); --start|byte_to_send|stop
@@ -94,12 +86,8 @@ begin
       (
           i_clk         => i_clk,
           i_rst         => i_rst,
-          i_sample      => i_sample,
-          i_ena         => i_ena,
-          i_prescaler   => i_prescaler,
-          i_rxd         => i_rxd,
-          o_rxd         => o_rxd,
-          o_valid       => o_valid
+          i_ds          => i_ds,
+          o_ds          => o_ds
       );
 
 
@@ -112,7 +100,7 @@ begin
           wait for clock_period/2;
   end process;
 
-  i_prescaler <= std_logic_vector(to_unsigned(125, 32));
+  i_ds.prescaler <= std_logic_vector(to_unsigned(125, 32));
 
                    --7 .... 0
   s_byte_to_send <= "10101010";
@@ -125,24 +113,26 @@ begin
     -- Put initialisation code here
 
       i_rst    <= '1';
-      i_ena    <= '0';
-      i_rxd    <= '1';
+
+      i_ds.sample <= '0';
+      i_ds.ena    <= '0';
+      i_ds.rxd    <= '1';
           wait for clock_period * 50;
       i_rst    <= '0';
 
       for i in 0 to 3 loop
-          wait for clock_period * to_integer(unsigned(i_prescaler));
+          wait for clock_period * to_integer(unsigned(i_ds.prescaler));
       end loop;
-
-      i_ena    <= '1';
 
       for i in 0 to 3 loop
-          wait for clock_period * to_integer(unsigned(i_prescaler));
+          wait for clock_period * to_integer(unsigned(i_ds.prescaler));
       end loop;
 
+      i_ds.ena    <= '1';
+
       for i in 0 to G_DATA_WIDTH + 1 loop
-          i_rxd <= s_data_to_send(v_cnt);        --start
-          wait for clock_period * to_integer(unsigned(i_prescaler));
+          i_ds.rxd <= s_data_to_send(v_cnt);        --start
+          wait for clock_period * to_integer(unsigned(i_ds.prescaler));
 
           cnt <= v_cnt;
 
@@ -153,7 +143,7 @@ begin
           end if;
 
       end loop;
-      i_rxd <= '1';
+      i_ds.rxd <= '1';
     wait;
   end process;
 

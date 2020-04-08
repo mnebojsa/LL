@@ -59,38 +59,14 @@ entity data_sample is
         i_clk              : in  std_logic;
         --! Reset for input clk domain
         i_rst              : in  std_logic;
-        --! Input Sample signal
-        i_sample           : in  std_logic;
-        --! Module Enable Signal
-        --! Starts to sample i_rxd after enabled
-        i_ena              : in  std_logic;
-        --! Duration of one bit (expresed in number of clk cycles per bit)
-        i_prescaler        : in  std_logic_vector(31 downto 0);
-        --! Input Reciveve Data Bus Line
-        i_rxd              : in  std_logic;
-        --! Valid Data on the output
-        o_valid            : out std_logic;
-        --! Outpu Data value
-        o_rxd              : out std_logic
+        --! Input Sample Module signals
+        i_ds               : in  TYPE_IN_DS;  -- Input to Sample module
+        --! Outpus from Sample Module
+        o_ds               : out TYPE_OUT_DS  -- Output Recieved Data
     );
 end data_sample;
 
 architecture Behavioral of data_sample is
-
-    -- Inputs registered
-    type TYPE_IN_REG is record
-        sample      : std_logic;                      -- Input Sample signal - comes from BAUD RATE GENERATOR- signal to sample input
-        ena         : std_logic;                      -- Input Uart Enable Signal
-        rxd         : std_logic;                      -- Input Reciveve Data bus Line
-        prescaler   : std_logic_vector(31 downto 0);
-    end record;
-
-    -- Reset Values for TYPE_IN_REG type data
-    constant TYPE_IN_REG_RST : TYPE_IN_REG := (
-        sample       => '0',
-        ena          => '0',
-        rxd          => '0',
-        prescaler    => (others => '0'));
 
     -- Control registered
     type TYPE_CTRL_REG is record
@@ -105,25 +81,12 @@ architecture Behavioral of data_sample is
         sample_1s    =>  0,
         sample_0s    =>  0);
 
-    -- Outputs registered
-    type TYPE_OUT_REG is record
-        valid        : std_logic; -- valid registered signal value (after sampling of the input)
-        rxd          : std_logic; -- sampled input bus value
-    end record;
-
-    -- Reset Values for TYPE_IN_REG type data
-    constant TYPE_OUT_REG_RST : TYPE_OUT_REG := (
-        valid        => '0',
-        rxd          => '0');
-
-    -- signal
-    signal s_sample   : std_logic;
     -- signal - takes High Level if there is active RESET on the module input
     signal s_reset    : std_logic;
     -- signal - Registered inputs to the module
-    signal r_in      : TYPE_IN_REG;
+    signal r_in      : TYPE_IN_DS;
     -- signal - Contains input values to be registered
-    signal c_in      : TYPE_IN_REG;
+    signal c_in      : TYPE_IN_DS;
 
     -- signal - Registered inputs to the module
     signal r_ctrl    : TYPE_CTRL_REG;
@@ -131,10 +94,14 @@ architecture Behavioral of data_sample is
     signal c_ctrl    : TYPE_CTRL_REG;
 
     -- signal - Registered inputs to the module
-    signal r_out     : TYPE_OUT_REG;
+    signal r_out     : TYPE_OUT_DS;
     -- signal - Contains input values to be registered
-    signal c_out     : TYPE_OUT_REG;
+    signal c_out     : TYPE_OUT_DS;
 
+    -- signal - Inputs to the BRG
+    signal i_brg      : TYPE_BRG_IN;
+    -- signal - Outputs from BRG
+    signal o_brg      : TYPE_BRG_OUT;
 begin
 
     -- equals '1' if there is active reset on the rst input, otherwise equals '0'
@@ -153,7 +120,7 @@ reg_in_proc:
     begin
         if rising_edge(i_clk) then
             if(s_reset = '1') then
-                r_in      <= TYPE_IN_REG_RST;
+                r_in      <= TYPE_IN_DS_RST;
             else
                 r_in      <= c_in;
             end if;
@@ -161,22 +128,22 @@ reg_in_proc:
     end process reg_in_proc;
 
 comb_in_proc:
-    process(r_in, i_ena, i_rxd, i_prescaler, i_sample)
-        variable V         : TYPE_IN_REG;
+    process(r_in, i_ds)
+        variable V         : TYPE_IN_DS;
     begin
         V           := r_in;
 
         V.sample    := '0';
         if (G_SAMPLE_USED = true) then
-            V.sample    := i_sample;
+            V.sample    := i_ds.sample;
         end if;
 
-        V.ena       := i_ena;
-        V.prescaler := i_prescaler;
+        V.ena       := i_ds.ena;
+        V.prescaler := i_ds.prescaler;
 
         V.rxd       := '1';
         if(r_in.ena = '1') then
-            V.rxd       := i_rxd;
+            V.rxd       := i_ds.rxd;
         end if;
 
         c_in <= V;
@@ -192,7 +159,7 @@ reg_out_proc:
     begin
         if rising_edge(i_clk) then
             if(s_reset = '1') then
-                r_out       <= TYPE_OUT_REG_RST;
+                r_out       <= TYPE_OUT_DS_RST;
             else
                 r_out       <= c_out;
             end if;
@@ -214,17 +181,17 @@ reg_ctrl_proc:
 
 
 comb_out_proc:
-    process(r_in, r_out, r_ctrl, s_sample)
+    process(r_in, r_out, r_ctrl, o_brg.brs)
         variable V_ctrl      : TYPE_CTRL_REG;
-        variable V_out       : TYPE_OUT_REG;
+        variable V_out       : TYPE_OUT_DS;
     begin
         V_ctrl     := r_ctrl;
         V_out      := r_out;
 
-        V_ctrl.sample   := s_sample;
+        V_ctrl.sample   := o_brg.brs;
         V_out.valid     := '0';
 
-        if s_sample = '1' and r_ctrl.sample = '0' then
+        if o_brg.brs = '1' and r_ctrl.sample = '0' then
             if (r_in.rxd = '1') then
                 V_ctrl.sample_1s:= r_ctrl.sample_1s +1;
             else
@@ -252,7 +219,11 @@ comb_out_proc:
 -------------------------------------------------------------------------------------------------------
 --        BRG Instance
 -------------------------------------------------------------------------------------------------------
-BRG_inst_0:
+ i_brg.sample    <= r_in.sample;
+ i_brg.ena       <= r_in.ena;
+ i_brg.prescaler <= r_in.prescaler;
+
+ BRG_inst_0:
     BRG
     generic map
     (
@@ -265,17 +236,13 @@ BRG_inst_0:
     (
         i_clk            => i_clk,            -- Input CLOCK
         i_rst            => i_rst,            -- Input Reset for clk
-        i_sample         => r_in.sample,      -- Input Sample signal - comes from BAUD RATE GENERATOR- signal to sample input
-        i_ena            => r_in.ena,         -- Input Uart Enable Signal
-        i_prescaler      => r_in.prescaler,   -- Number of clock cycles in one bit
-        o_sample         => s_sample          -- Sample signal
+        i_brg            => i_brg,            -- Input to BAUD RATE GENERATOR- signal to sample input
+        o_brg            => o_brg             -- Sample signal
     );
-
 
 -------------------------------------------------------------------------------------------------------
 --        Outputs Assigment
 -------------------------------------------------------------------------------------------------------
-    o_valid       <= r_out.valid;
-    o_rxd         <= r_out.rxd;
+    o_ds       <= r_out;
 
 end Behavioral;

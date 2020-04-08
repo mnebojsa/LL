@@ -29,6 +29,7 @@ library ieee;
     use ieee.numeric_std.all;
 
     use work.p_general.all;
+    use work.p_uart.all;
 
 
 entity BRG is
@@ -59,30 +60,15 @@ entity BRG is
         i_clk              : in  std_logic;
         --! Reset for input clk domain
         i_rst              : in  std_logic;
-        -- Input Sample signal
-        i_sample           : in  std_logic;
-        --! BRG Enable Signal
-        --! Starts to give sample bits after enabled
-        i_ena              : in  std_logic;
-        --! Duration of one bit (expresed in number of clk cycles per bit)
-        i_prescaler        : in  std_logic_vector(31 downto 0);
+        --!
+        i_brg              : in  TYPE_BRG_IN;
         --! Sample trigger signal
-        o_sample           : out std_logic
+        o_brg              : out TYPE_BRG_OUT
     );
 end BRG;
 
 architecture Behavioral of BRG is
-    -- Inputs registered
-    type TYPE_BRG_IN is record
-        sample     : std_logic;                    -- Sample from the Module's input
-        ena        : std_logic;                    -- Enable Module signal
-        prescaler  : unsigned(31 downto 0);        -- Duration of one bit (expresed in number of clk cycles per bit)
-    end record;
 
-    constant TYPE_BRG_IN_RST : TYPE_BRG_IN := (
-        sample     => '0',
-        ena        => '0',
-        prescaler  => (others => '0'));
 
     type TYPE_CTRL_REG is record
         sample_num   : integer range 0 to G_SAMPLE_PER_BIT +1; -- number of samples per bit
@@ -94,14 +80,6 @@ architecture Behavioral of BRG is
         sample_num   =>  0,
         clk_per_smpl => (others => '0'),
         clk_per_bit  => (others => '0'));
-
-
-    type TYPE_BRG_OUT is record
-        brs          : std_logic;        -- baud rate sample
-    end record;
-
-    constant TYPE_BRG_OUT_RST : TYPE_BRG_OUT := (
-        brs          => '0');
 
     -- constant - zeros used for comparation
     constant zeros    : unsigned(G_DATA_WIDTH-1 downto 0) := (others => '0');
@@ -148,21 +126,21 @@ sync_IN_process:
 
 
 comb_IN_process:
-    process(r_in, i_sample, i_ena, i_prescaler)
+    process(r_in, i_brg)
         variable V : TYPE_BRG_IN;
     begin
         V           := r_in;
 
-        V.ena       := i_ena;
+        V.ena       := i_brg.ena;
 
         if(G_SAMPLE_USED = true) then
             V.prescaler  := (others => '0');
             if r_in.ena   = '1' then
-                V.sample := i_sample;
+                V.sample := i_brg.sample;
             end if;
         else
             V.sample    := '0';
-            V.prescaler := unsigned(i_prescaler);
+            V.prescaler := i_brg.prescaler;
         end if;
 
         c_in <= V;
@@ -238,20 +216,20 @@ if G_SAMPLE_USED = false generate
         V_out    := r_out;
 
         -- i_prescaler / G_SAMPLE_PER_BIT
-        V_ctrl.clk_per_smpl := (r_in.prescaler/(G_SAMPLE_PER_BIT +1));
+        V_ctrl.clk_per_smpl := (unsigned(r_in.prescaler))/(G_SAMPLE_PER_BIT +1);
         if  V_ctrl.clk_per_smpl = zeros then
             -- i_prescaler / 2
-            V_ctrl.clk_per_smpl := r_in.prescaler srl 1;
+            V_ctrl.clk_per_smpl := (unsigned(r_in.prescaler)) srl 1;
         end if;
 
         V_out.brs := '0';
         if r_in.ena = '1' then
 
             V_ctrl.clk_per_bit := r_ctrl.clk_per_bit +1;
-            if (r_ctrl.clk_per_bit = r_in.prescaler) then
+            if (r_ctrl.clk_per_bit = unsigned(r_in.prescaler)) then
                  V_ctrl.clk_per_bit := (others => '0');
                  V_ctrl.sample_num  :=  0;
-				else
+                else
                 V_ctrl.sample_num  := r_ctrl.sample_num  +1;
                 if (r_ctrl.sample_num = to_integer(r_ctrl.clk_per_smpl)) then
                     V_out.brs := '1';
@@ -268,6 +246,6 @@ end generate smpl_gen_used;
 -------------------------------------------------------------------------------------------------------
 --                             OUPUTS
 -------------------------------------------------------------------------------------------------------
-    o_sample <= r_out.brs;
+    o_brg <= r_out;
 
 end Behavioral;

@@ -29,6 +29,7 @@ library ieee;
     use ieee.numeric_std.all;
 
     use work.p_general.all;
+    use work.p_uart.all;
 
 
 entity BRG_tb is
@@ -57,24 +58,19 @@ architecture bench of BRG_tb is
            i_clk              : in  std_logic;
            --! Reset for input clk domain
            i_rst              : in  std_logic;
-           -- Input Sample signal
-           i_sample           : in  std_logic;
-           --! BRG Enable Signal
-           --! Starts to give sample bits after enabled
-           i_ena              : in  std_logic;
-           --! Duration of one bit (expresed in number of clk cycles per bit)
-           i_prescaler        : in  std_logic_vector(31 downto 0);
+           --! Input
+           i_brg              : in  TYPE_BRG_IN;
            --! Sample trigger signal
-           o_sample           : out std_logic
+           o_brg              : out TYPE_BRG_OUT
       );
   end component;
 
   signal i_clk       : std_logic;
   signal i_rst       : std_logic;
-  signal i_sample    : std_logic;
-  signal i_ena       : std_logic;
-  signal i_prescaler : std_logic_vector(31 downto 0) := "00000000000000000000000001111101"; --125
-  signal o_sample    : std_logic;
+           --! Input
+  signal i_brg       : TYPE_BRG_IN;
+           --! Sample trigger signal
+  signal o_brg       : TYPE_BRG_OUT;
 
   constant clock_period: time := 10 ns;
 
@@ -94,10 +90,8 @@ uut:
   (
       i_clk         => i_clk,
       i_rst         => i_rst,
-      i_sample      => i_sample,
-      i_ena         => i_ena,
-      i_prescaler   => i_prescaler,
-      o_sample      => o_sample
+      i_brg         => i_brg,
+      o_brg         => o_brg
   );
 
 
@@ -106,13 +100,13 @@ rest_enable_proc:
   begin
 
  -- Put initialisation code here
-    i_rst  <= '1';
-    i_ena  <= '0';
+    i_rst      <= '1';
+    i_brg.ena  <= '0';
  -- Put test bench stimulus code here
         wait for clock_period * 10;
-    i_rst <= '0';
+    i_rst     <= '0';
         wait for clock_period * 10;
-    i_ena <= '1';
+    i_brg.ena <= '1';
         wait for clock_period * 10000;
   end process rest_enable_proc;
 
@@ -125,6 +119,8 @@ clk_process:
           wait for clock_period/2;
   end process clk_process;
 
+  i_brg.prescaler <= std_logic_vector(to_unsigned(125, 32));
+
 stimulus:
   process
   begin
@@ -133,13 +129,13 @@ stimulus:
     if G_SAMPLE_USED = true then
         -- Put initialisation code here
         for i in 0 to 20 loop
-            i_sample <= '1';
+            i_brg.sample <= '1';
                 wait for 10 ns;
-            i_sample <= '0';
+            i_brg.sample <= '0';
                 wait for 30 ns;
         end loop;
     end if;
-    i_sample <= '0';
+    i_brg.sample <= '0';
 
     wait;
   end process stimulus;

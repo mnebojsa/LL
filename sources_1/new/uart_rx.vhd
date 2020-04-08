@@ -137,46 +137,16 @@ architecture Behavioral of uart_rx is
     -- signal - Values Updated in combinational process that will be registered on the risinf edge of clk
     signal c_out        : TYPE_UART_OUT;
 
+    -- signal - Inputs to the DATA SAMPLE Module
+    signal i_ds         : TYPE_IN_DS;
+    -- signal - Outputs from the DATA SAMPLE Module
+    signal o_ds         : TYPE_OUT_DS;
 begin
 
     -- equals '1' if there is active reset on the rst input, otherwise equals '0'
     s_reset <= '1' when ((G_RST_LEVEVEL = HL and i_rst = '1') or (G_RST_LEVEVEL = LL and i_rst = '0'))
                    else '0';
---------------------------------------------------------------------------------------------------------
---              Data Sample Module Instance
---------------------------------------------------------------------------------------------------------
-  DS_inst_0:
-  data_sample
-      generic map (
-          G_RST_LEVEVEL    => G_RST_LEVEVEL,
-          G_SAMPLE_USED    => false,
-          G_SAMPLE_PER_BIT => G_SAMPLE_PER_BIT)
-      port map (
-          i_clk         => i_clk,
-          i_rst         => i_rst,
-          i_sample      => '0',
-          i_ena         => s_sampler_en,
-          i_prescaler   => i_uart.prescaler,
-          i_rxd         => i_uart.rxd,
-          o_valid       => s_valid,
-          o_rxd         => s_rxd );
 
-
-data_sample_en:
-    process(i_clk)
-    begin
-        if rising_edge(i_clk) then
-            if(s_reset = '1') then
-                s_sampler_en <= '0';
-            else
-                if(r_in.ena = '1' and i_uart.rxd = '0') then
-                    s_sampler_en <= '1';
-                elsif(r_out.valid = '1') then
-                    s_sampler_en <= '0';
-                end if;
-            end if;
-        end if;
-    end process data_sample_en;
 -------------------------------------------------------------------------------------------------------
 --        Registring Inputs
 -------------------------------------------------------------------------------------------------------
@@ -405,6 +375,47 @@ comb_out_proc:
         c_ctrl <= V_ctrl;
         c_out  <= V_out;
     end process comb_out_proc;
+
+--------------------------------------------------------------------------------------------------------
+--              Data Sample Module Instance
+--------------------------------------------------------------------------------------------------------
+
+  i_ds.sample      <= '0';
+  i_ds.ena         <= s_sampler_en;
+  i_ds.prescaler   <= i_uart.prescaler;
+  i_ds.rxd         <= i_uart.rxd;
+
+DS_inst_0:
+  data_sample
+      generic map (
+          G_RST_LEVEVEL    => G_RST_LEVEVEL,
+          G_SAMPLE_USED    => false,
+          G_SAMPLE_PER_BIT => G_SAMPLE_PER_BIT)
+      port map (
+          i_clk         => i_clk,
+          i_rst         => i_rst,
+          i_ds          => i_ds,
+          o_ds          => o_ds);
+
+  s_valid         <= o_ds.valid;
+  s_rxd           <= o_ds.rxd;
+
+
+data_sample_en:
+    process(i_clk)
+    begin
+        if rising_edge(i_clk) then
+            if(s_reset = '1') then
+                s_sampler_en <= '0';
+            else
+                if(r_in.ena = '1' and i_uart.rxd = '0') then
+                    s_sampler_en <= '1';
+                elsif(r_out.valid = '1') then
+                    s_sampler_en <= '0';
+                end if;
+            end if;
+        end if;
+    end process data_sample_en;
 
 -------------------------------------------------------------------------------------------------------
 --        Outputs Assigment
