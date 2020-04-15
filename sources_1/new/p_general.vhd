@@ -30,8 +30,26 @@ package p_general is
     type U_PARITY  is (NONE, EVEN, ODD);
     --! Lin standard
     type LIN_STD   is (L1 , L2);
+
+    --! function takes vector and gives back it's reverted value
+    function reverse_vector(
+                    in_string     : std_logic_vector)
+                                    return std_logic_vector;
+
 end package;
 
 package body p_general is
+
+    function reverse_vector(
+                          in_string          : in std_logic_vector)
+                                               return std_logic_vector is
+        variable result: std_logic_vector(in_string'range);
+        alias    aa    : std_logic_vector(in_string'reverse_range) is in_string;
+    begin
+        for i in aa'range loop
+            result(i) := aa(i);
+        end loop;
+        return result;
+    end function;
 
 end package body;

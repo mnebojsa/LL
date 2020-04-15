@@ -28,6 +28,7 @@ library ieee;
     use ieee.std_logic_1164.all;
     use ieee.numeric_std.all;
 
+    use work.p_general.all;
     use work.p_verification.all;
 
 entity LIN_slave_tb is
@@ -63,10 +64,6 @@ architecture bench of LIN_slave_tb is
   constant clock_period   : time     := 10 ns;
   constant send_frames_num: positive := 5;
   constant bit_length     : positive := 250; --in clk cycles
-
-  signal test1 : unsigned(0 to 8);
-  signal test2 : unsigned(7 downto 0) := "00000001";
-  signal rez   : unsigned(7 downto 0) := (others => '0');
 
 begin
 
@@ -127,17 +124,18 @@ begin
                v_frame_len := 8;
            end if;
 
-           report "unexpected value. v_frame_len = " & integer'image(v_frame_len);
-           report "unexpected ID value = " & integer'image(to_integer(unsigned(reverse_vector(v_PID(1 to 6)))));
+           report " **** v_frame_len = " & integer'image(v_frame_len);
+
            --s_lin_frame(0) <= c_break;
-           v_lin_frame(0) := c_sync;
-           v_lin_frame(1) := v_PID;
+           v_lin_frame(0) := v_PID;
 
 
            v_checksum_temp := (others => '0');
-           for jj in 2 to 10 loop
-               test1 <= v_checksum_temp;
-               if jj < 2 + v_frame_len then
+-----------------------
+ report " **** v_checksum_temp na pocetku = " & integer'image(to_integer(v_checksum_temp));
+-----------------------
+           for jj in 1 to 9 loop
+               if jj < 1 + v_frame_len then
                    v_lin_frame(jj)(0)      := '0';
                    v_lin_frame(jj)(1 to 8) := rand_slv(8,jj,i);
                    v_lin_frame(jj)(9)      := '1';
@@ -148,27 +146,19 @@ begin
                        v_checksum_temp(0) := '0';
                        v_checksum_temp    := v_checksum_temp + 1;
                    end if;
-
-               elsif(jj = 2 + v_frame_len) then
+-----------------------
+ report " **** v_checksum_temp = " & integer'image(to_integer(v_checksum_temp));
+-----------------------
+               elsif(jj = 1 + v_frame_len) then
                    v_CHECKSUM     := std_logic_vector('0' & not(v_checksum_temp(1 to 8)) & '1');
-                   v_lin_frame(2 + v_frame_len)  := v_CHECKSUM;
---------------------------------------------------
-                  test1 <= v_checksum_temp;
-                  v_checksum_temp := (others => '0');
-                  --test2 <= 
-                 -- rez   <=  rez + test1;
---------------------------------------------------
+                   v_lin_frame(1 + v_frame_len)  := v_CHECKSUM;
                else
                    v_lin_frame(jj) := (others => '1');
-                   test1 <= v_checksum_temp;
-                   v_checksum_temp := (others => '0');
                end if;
            end loop;
 
-           --testing purposes
+           -- testing purposes
            s_lin_frame <= v_lin_frame;
-           -- break
-           p_send_data(c_break, bit_length, clock_period/2, i_data);
            -- send the frame
            p_send_lin_frame (v_lin_frame, bit_length, clock_period/2, i_data);
 

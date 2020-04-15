@@ -72,9 +72,6 @@ architecture Behavioral of LIN_fsm is
 --     *PORUKA
 --     *CHECKSUM ako treba
 
-
-
--- razdvoji ulazi i izlaz kao kod uarta
 -- prouci lin specifikaciju
 -- iskomentarisi kod
 ----------------------------------------------------------------------------------------------------
@@ -177,8 +174,11 @@ LIN_fsm_syn_proc:
 
 LIN_fsm_comb_proc:
     process(r_out, r_in, r_in.serial_in, i_lin_fsm, i_lin_fsm.serial_in, r_lin_ctrl)
-variable vvvvvvvvvvvvvvvv: unsigned(8 downto 0) := (others => '0');
-variable vvv             : std_logic_vector(7 downto 0) := (others => '0');
+      --preimenuj variablr i pazi na latchh-eve
+		-- dodaj detekciju uart_break u ostalim stanjima da se FSM vrati u idle ako naidje break
+		-- ba ce uci u break jer je 0 na serial in, a u sync kad dodje '1'
+        variable vvvvvvvvvvvvvvvv: unsigned(8 downto 0) := (others => '0');
+        variable vvv             : std_logic_vector(7 downto 0) := (others => '0');
 
         variable V       : TYPE_LIN_FSM_OUT;
         variable V_ctrl  : TYPE_LIN_FSM_CTRL;
@@ -286,13 +286,11 @@ variable vvv             : std_logic_vector(7 downto 0) := (others => '0');
                             V_ctrl.fsm   := CHECKSUM;
                         end if;
 
-                        for i in 0 to 7 loop
-                            vvvvvvvvvvvvvvvv(7 -i) := r_in.uart.rx_data(i);
-                        end loop;
+                        vvvvvvvvvvvvvvvv(7 downto 0) := unsigned(reverse_vector(r_in.uart.rx_data));
                         vvvvvvvvvvvvvvvv(8) := '0';
                         V_ctrl.check_sum := r_lin_ctrl.check_sum + vvvvvvvvvvvvvvvv; --unsigned(r_in.uart.rx_data(0 to 7));
-                        if(V_ctrl.check_sum(0) = '1') then
-                            V_ctrl.check_sum(0) := '0';
+                        if(V_ctrl.check_sum(8) = '1') then
+                            V_ctrl.check_sum(8) := '0';
                             V_ctrl.check_sum    := V_ctrl.check_sum +1;
                         end if;
                         V_ctrl.frame_cnt := r_lin_ctrl.frame_cnt +1;
@@ -304,10 +302,7 @@ variable vvv             : std_logic_vector(7 downto 0) := (others => '0');
                         V.rx_data        := r_in.uart.rx_data;
                         V_ctrl.fsm       := LIN_ERR;
                         
-                        for i in 0 to 7 loop
-                            vvvvvvvvvvvvvvvv(7 -i) := r_in.uart.rx_data(i);
-                        end loop;
-                        
+                        vvvvvvvvvvvvvvvv(7 downto 0) := unsigned(reverse_vector(r_in.uart.rx_data));
                                                                                                    --r_in.uart.rx_data;
                         if (std_logic_vector(r_lin_ctrl.check_sum(7 downto 0)) xor std_logic_vector(vvvvvvvvvvvvvvvv(7 downto 0))) = x"FF" then
                             V_ctrl.fsm       := IDLE;
