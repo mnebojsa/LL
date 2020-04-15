@@ -35,7 +35,7 @@ entity data_sample_tb is
      (
        G_RST_LEVEVEL      : RST_LEVEL := HL;
        G_SAMPLE_USED      : boolean   := false;
-       G_SAMPLE_PER_BIT   : positive  := 16;
+       G_SAMPLE_PER_BIT   : positive  := 13;
        G_DATA_WIDTH       : POSITIVE  := 8
     );
 end;

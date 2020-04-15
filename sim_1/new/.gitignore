@@ -1,0 +1,15 @@
+# Ignore all files
+*.*
+
+# Do not ignore test_bench files
+!*_tb.vhd
+!*_tb.v
+
+# Do not ignore verification packages
+!p_*.vhd
+
+# Do not ignore wave files
+!*.wcfg
+
+# Do not ignore gitignore files
+!*.gitignore

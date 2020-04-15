@@ -1,0 +1,346 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<wave_config>
+   <wave_state>
+   </wave_state>
+   <db_ref_list>
+      <db_ref path="uart_rx_tb_behav.wdb" id="1">
+         <top_modules>
+            <top_module name="p_general" />
+            <top_module name="p_uart" />
+            <top_module name="uart_rx_tb" />
+         </top_modules>
+      </db_ref>
+   </db_ref_list>
+   <zoom_setting>
+      <ZoomStartTime time="0fs"></ZoomStartTime>
+      <ZoomEndTime time="301000001fs"></ZoomEndTime>
+      <Cursor1Time time="209105000fs"></Cursor1Time>
+   </zoom_setting>
+   <column_width_setting>
+      <NameColumnWidth column_width="207"></NameColumnWidth>
+      <ValueColumnWidth column_width="76"></ValueColumnWidth>
+   </column_width_setting>
+   <WVObjectSize size="3" />
+   <wvobject fp_name="group253" type="group">
+      <obj_property name="label">test_bench signals</obj_property>
+      <obj_property name="DisplayName">label</obj_property>
+      <obj_property name="isExpanded"></obj_property>
+      <wvobject fp_name="/uart_rx_tb/i_clk" type="logic">
+         <obj_property name="ElementShortName">i_clk</obj_property>
+         <obj_property name="ObjectShortName">i_clk</obj_property>
+      </wvobject>
+      <wvobject fp_name="/uart_rx_tb/i_rst" type="logic">
+         <obj_property name="ElementShortName">i_rst</obj_property>
+         <obj_property name="ObjectShortName">i_rst</obj_property>
+      </wvobject>
+      <wvobject fp_name="/uart_rx_tb/i_ena" type="logic">
+         <obj_property name="ElementShortName">i_ena</obj_property>
+         <obj_property name="ObjectShortName">i_ena</obj_property>
+      </wvobject>
+      <wvobject fp_name="/uart_rx_tb/i_rxd" type="logic">
+         <obj_property name="ElementShortName">i_rxd</obj_property>
+         <obj_property name="ObjectShortName">i_rxd</obj_property>
+      </wvobject>
+      <wvobject fp_name="/uart_rx_tb/i_prescaler" type="array">
+         <obj_property name="ElementShortName">i_prescaler[31:0]</obj_property>
+         <obj_property name="ObjectShortName">i_prescaler[31:0]</obj_property>
+      </wvobject>
+      <wvobject fp_name="/uart_rx_tb/o_break" type="logic">
+         <obj_property name="ElementShortName">o_break</obj_property>
+         <obj_property name="ObjectShortName">o_break</obj_property>
+      </wvobject>
+      <wvobject fp_name="/uart_rx_tb/o_overrun_err" type="logic">
+         <obj_property name="ElementShortName">o_overrun_err</obj_property>
+         <obj_property name="ObjectShortName">o_overrun_err</obj_property>
+      </wvobject>
+      <wvobject fp_name="/uart_rx_tb/o_framein_err" type="logic">
+         <obj_property name="ElementShortName">o_framein_err</obj_property>
+         <obj_property name="ObjectShortName">o_framein_err</obj_property>
+      </wvobject>
+      <wvobject fp_name="/uart_rx_tb/o_parity_err" type="logic">
+         <obj_property name="ElementShortName">o_parity_err</obj_property>
+         <obj_property name="ObjectShortName">o_parity_err</obj_property>
+      </wvobject>
+      <wvobject fp_name="/uart_rx_tb/o_rx_data" type="array">
+         <obj_property name="ElementShortName">o_rx_data[0:7]</obj_property>
+         <obj_property name="ObjectShortName">o_rx_data[0:7]</obj_property>
+      </wvobject>
+      <wvobject fp_name="/uart_rx_tb/o_valid" type="logic">
+         <obj_property name="ElementShortName">o_valid</obj_property>
+         <obj_property name="ObjectShortName">o_valid</obj_property>
+      </wvobject>
+      <wvobject fp_name="/uart_rx_tb/s_data_to_send" type="array">
+         <obj_property name="ElementShortName">s_data_to_send[0:9]</obj_property>
+         <obj_property name="ObjectShortName">s_data_to_send[0:9]</obj_property>
+      </wvobject>
+      <wvobject fp_name="/uart_rx_tb/s_byte_to_send" type="array">
+         <obj_property name="ElementShortName">s_byte_to_send[0:7]</obj_property>
+         <obj_property name="ObjectShortName">s_byte_to_send[0:7]</obj_property>
+      </wvobject>
+      <wvobject fp_name="/uart_rx_tb/cnt" type="other">
+         <obj_property name="ElementShortName">cnt</obj_property>
+         <obj_property name="ObjectShortName">cnt</obj_property>
+      </wvobject>
+   </wvobject>
+   <wvobject fp_name="group284" type="group">
+      <obj_property name="label">UART_RX</obj_property>
+      <obj_property name="DisplayName">label</obj_property>
+      <obj_property name="isExpanded"></obj_property>
+      <wvobject fp_name="/uart_rx_tb/uut/UART_RX_inst_0/i_clk" type="logic">
+         <obj_property name="ElementShortName">i_clk</obj_property>
+         <obj_property name="ObjectShortName">i_clk</obj_property>
+      </wvobject>
+      <wvobject fp_name="/uart_rx_tb/uut/UART_RX_inst_0/i_rst" type="logic">
+         <obj_property name="ElementShortName">i_rst</obj_property>
+         <obj_property name="ObjectShortName">i_rst</obj_property>
+      </wvobject>
+      <wvobject fp_name="group285" type="group">
+         <obj_property name="label">UART in interface</obj_property>
+         <obj_property name="DisplayName">label</obj_property>
+         <obj_property name="isExpanded"></obj_property>
+         <wvobject fp_name="/uart_rx_tb/uut/UART_RX_inst_0/i_uart" type="array">
+            <obj_property name="ElementShortName">i_uart</obj_property>
+            <obj_property name="ObjectShortName">i_uart</obj_property>
+            <obj_property name="isExpanded"></obj_property>
+            <wvobject fp_name="/uart_rx_tb/uut/UART_RX_inst_0/i_uart.ena" type="logic">
+               <obj_property name="ElementShortName">.ena</obj_property>
+               <obj_property name="ObjectShortName">.ena</obj_property>
+               <obj_property name="CustomSignalColor">#FFFFFF</obj_property>
+               <obj_property name="UseCustomSignalColor">true</obj_property>
+            </wvobject>
+            <wvobject fp_name="/uart_rx_tb/uut/UART_RX_inst_0/i_uart.prescaler" type="array">
+               <obj_property name="ElementShortName">.prescaler[31:0]</obj_property>
+               <obj_property name="ObjectShortName">.prescaler[31:0]</obj_property>
+               <obj_property name="CustomSignalColor">#FFFFFF</obj_property>
+               <obj_property name="UseCustomSignalColor">true</obj_property>
+            </wvobject>
+            <wvobject fp_name="/uart_rx_tb/uut/UART_RX_inst_0/i_uart.rxd" type="logic">
+               <obj_property name="ElementShortName">.rxd</obj_property>
+               <obj_property name="ObjectShortName">.rxd</obj_property>
+               <obj_property name="CustomSignalColor">#FFFFFF</obj_property>
+               <obj_property name="UseCustomSignalColor">true</obj_property>
+            </wvobject>
+            <wvobject fp_name="/uart_rx_tb/uut/UART_RX_inst_0/i_uart.data_acc" type="logic">
+               <obj_property name="ElementShortName">.data_acc</obj_property>
+               <obj_property name="ObjectShortName">.data_acc</obj_property>
+               <obj_property name="CustomSignalColor">#FFFFFF</obj_property>
+               <obj_property name="UseCustomSignalColor">true</obj_property>
+            </wvobject>
+         </wvobject>
+      </wvobject>
+      <wvobject fp_name="group290" type="group">
+         <obj_property name="label">UART out interface</obj_property>
+         <obj_property name="DisplayName">label</obj_property>
+         <obj_property name="isExpanded"></obj_property>
+         <wvobject fp_name="/uart_rx_tb/uut/UART_RX_inst_0/o_uart" type="array">
+            <obj_property name="ElementShortName">o_uart</obj_property>
+            <obj_property name="ObjectShortName">o_uart</obj_property>
+            <obj_property name="isExpanded"></obj_property>
+            <wvobject fp_name="/uart_rx_tb/uut/UART_RX_inst_0/o_uart.break" type="logic">
+               <obj_property name="ElementShortName">.break</obj_property>
+               <obj_property name="ObjectShortName">.break</obj_property>
+               <obj_property name="CustomSignalColor">#FFFF00</obj_property>
+               <obj_property name="UseCustomSignalColor">true</obj_property>
+            </wvobject>
+            <wvobject fp_name="/uart_rx_tb/uut/UART_RX_inst_0/o_uart.overrun_err" type="logic">
+               <obj_property name="ElementShortName">.overrun_err</obj_property>
+               <obj_property name="ObjectShortName">.overrun_err</obj_property>
+               <obj_property name="CustomSignalColor">#FFFF00</obj_property>
+               <obj_property name="UseCustomSignalColor">true</obj_property>
+            </wvobject>
+            <wvobject fp_name="/uart_rx_tb/uut/UART_RX_inst_0/o_uart.framein_err" type="logic">
+               <obj_property name="ElementShortName">.framein_err</obj_property>
+               <obj_property name="ObjectShortName">.framein_err</obj_property>
+               <obj_property name="CustomSignalColor">#FFFF00</obj_property>
+               <obj_property name="UseCustomSignalColor">true</obj_property>
+            </wvobject>
+            <wvobject fp_name="/uart_rx_tb/uut/UART_RX_inst_0/o_uart.parity_err" type="logic">
+               <obj_property name="ElementShortName">.parity_err</obj_property>
+               <obj_property name="ObjectShortName">.parity_err</obj_property>
+               <obj_property name="CustomSignalColor">#FFFF00</obj_property>
+               <obj_property name="UseCustomSignalColor">true</obj_property>
+            </wvobject>
+            <wvobject fp_name="/uart_rx_tb/uut/UART_RX_inst_0/o_uart.rx_data" type="array">
+               <obj_property name="ElementShortName">.rx_data[7:0]</obj_property>
+               <obj_property name="ObjectShortName">.rx_data[7:0]</obj_property>
+               <obj_property name="CustomSignalColor">#FFFF00</obj_property>
+               <obj_property name="UseCustomSignalColor">true</obj_property>
+            </wvobject>
+            <wvobject fp_name="/uart_rx_tb/uut/UART_RX_inst_0/o_uart.valid" type="logic">
+               <obj_property name="ElementShortName">.valid</obj_property>
+               <obj_property name="ObjectShortName">.valid</obj_property>
+               <obj_property name="CustomSignalColor">#FFFF00</obj_property>
+               <obj_property name="UseCustomSignalColor">true</obj_property>
+            </wvobject>
+         </wvobject>
+      </wvobject>
+      <wvobject fp_name="group297" type="group">
+         <obj_property name="label">UART implementation signals</obj_property>
+         <obj_property name="DisplayName">label</obj_property>
+         <obj_property name="isExpanded"></obj_property>
+         <wvobject fp_name="/uart_rx_tb/uut/UART_RX_inst_0/s_reset" type="logic">
+            <obj_property name="ElementShortName">s_reset</obj_property>
+            <obj_property name="ObjectShortName">s_reset</obj_property>
+         </wvobject>
+         <wvobject fp_name="/uart_rx_tb/uut/UART_RX_inst_0/s_sampler_en" type="logic">
+            <obj_property name="ElementShortName">s_sampler_en</obj_property>
+            <obj_property name="ObjectShortName">s_sampler_en</obj_property>
+         </wvobject>
+         <wvobject fp_name="/uart_rx_tb/uut/UART_RX_inst_0/s_rxd" type="logic">
+            <obj_property name="ElementShortName">s_rxd</obj_property>
+            <obj_property name="ObjectShortName">s_rxd</obj_property>
+         </wvobject>
+         <wvobject fp_name="/uart_rx_tb/uut/UART_RX_inst_0/s_valid" type="logic">
+            <obj_property name="ElementShortName">s_valid</obj_property>
+            <obj_property name="ObjectShortName">s_valid</obj_property>
+         </wvobject>
+         <wvobject fp_name="/uart_rx_tb/uut/UART_RX_inst_0/r_in_ctrl" type="array">
+            <obj_property name="ElementShortName">r_in_ctrl</obj_property>
+            <obj_property name="ObjectShortName">r_in_ctrl</obj_property>
+         </wvobject>
+         <wvobject fp_name="/uart_rx_tb/uut/UART_RX_inst_0/c_in_ctrl" type="array">
+            <obj_property name="ElementShortName">c_in_ctrl</obj_property>
+            <obj_property name="ObjectShortName">c_in_ctrl</obj_property>
+         </wvobject>
+         <wvobject fp_name="/uart_rx_tb/uut/UART_RX_inst_0/r_in" type="array">
+            <obj_property name="ElementShortName">r_in</obj_property>
+            <obj_property name="ObjectShortName">r_in</obj_property>
+         </wvobject>
+         <wvobject fp_name="/uart_rx_tb/uut/UART_RX_inst_0/c_in" type="array">
+            <obj_property name="ElementShortName">c_in</obj_property>
+            <obj_property name="ObjectShortName">c_in</obj_property>
+         </wvobject>
+         <wvobject fp_name="/uart_rx_tb/uut/UART_RX_inst_0/r_ctrl" type="array">
+            <obj_property name="ElementShortName">r_ctrl</obj_property>
+            <obj_property name="ObjectShortName">r_ctrl</obj_property>
+         </wvobject>
+         <wvobject fp_name="/uart_rx_tb/uut/UART_RX_inst_0/c_ctrl" type="array">
+            <obj_property name="ElementShortName">c_ctrl</obj_property>
+            <obj_property name="ObjectShortName">c_ctrl</obj_property>
+         </wvobject>
+         <wvobject fp_name="/uart_rx_tb/uut/UART_RX_inst_0/r_out" type="array">
+            <obj_property name="ElementShortName">r_out</obj_property>
+            <obj_property name="ObjectShortName">r_out</obj_property>
+         </wvobject>
+         <wvobject fp_name="/uart_rx_tb/uut/UART_RX_inst_0/c_out" type="array">
+            <obj_property name="ElementShortName">c_out</obj_property>
+            <obj_property name="ObjectShortName">c_out</obj_property>
+         </wvobject>
+         <wvobject fp_name="group298" type="group">
+            <obj_property name="label">DATA SAMPLE Interfaces</obj_property>
+            <obj_property name="DisplayName">label</obj_property>
+            <obj_property name="isExpanded"></obj_property>
+            <wvobject fp_name="/uart_rx_tb/uut/UART_RX_inst_0/i_ds" type="array">
+               <obj_property name="ElementShortName">i_ds</obj_property>
+               <obj_property name="ObjectShortName">i_ds</obj_property>
+               <obj_property name="isExpanded"></obj_property>
+               <wvobject fp_name="/uart_rx_tb/uut/UART_RX_inst_0/i_ds.sample" type="logic">
+                  <obj_property name="ElementShortName">.sample</obj_property>
+                  <obj_property name="ObjectShortName">.sample</obj_property>
+                  <obj_property name="CustomSignalColor">#FFFFFF</obj_property>
+                  <obj_property name="UseCustomSignalColor">true</obj_property>
+               </wvobject>
+               <wvobject fp_name="/uart_rx_tb/uut/UART_RX_inst_0/i_ds.ena" type="logic">
+                  <obj_property name="ElementShortName">.ena</obj_property>
+                  <obj_property name="ObjectShortName">.ena</obj_property>
+                  <obj_property name="CustomSignalColor">#FFFFFF</obj_property>
+                  <obj_property name="UseCustomSignalColor">true</obj_property>
+               </wvobject>
+               <wvobject fp_name="/uart_rx_tb/uut/UART_RX_inst_0/i_ds.rxd" type="logic">
+                  <obj_property name="ElementShortName">.rxd</obj_property>
+                  <obj_property name="ObjectShortName">.rxd</obj_property>
+                  <obj_property name="CustomSignalColor">#FFFFFF</obj_property>
+                  <obj_property name="UseCustomSignalColor">true</obj_property>
+               </wvobject>
+               <wvobject fp_name="/uart_rx_tb/uut/UART_RX_inst_0/i_ds.prescaler" type="array">
+                  <obj_property name="ElementShortName">.prescaler[31:0]</obj_property>
+                  <obj_property name="ObjectShortName">.prescaler[31:0]</obj_property>
+                  <obj_property name="CustomSignalColor">#FFFFFF</obj_property>
+                  <obj_property name="UseCustomSignalColor">true</obj_property>
+               </wvobject>
+            </wvobject>
+            <wvobject fp_name="/uart_rx_tb/uut/UART_RX_inst_0/o_ds" type="array">
+               <obj_property name="ElementShortName">o_ds</obj_property>
+               <obj_property name="ObjectShortName">o_ds</obj_property>
+               <obj_property name="isExpanded"></obj_property>
+               <wvobject fp_name="/uart_rx_tb/uut/UART_RX_inst_0/o_ds.valid" type="logic">
+                  <obj_property name="ElementShortName">.valid</obj_property>
+                  <obj_property name="ObjectShortName">.valid</obj_property>
+                  <obj_property name="CustomSignalColor">#FFFF00</obj_property>
+                  <obj_property name="UseCustomSignalColor">true</obj_property>
+               </wvobject>
+               <wvobject fp_name="/uart_rx_tb/uut/UART_RX_inst_0/o_ds.rxd" type="logic">
+                  <obj_property name="ElementShortName">.rxd</obj_property>
+                  <obj_property name="ObjectShortName">.rxd</obj_property>
+                  <obj_property name="CustomSignalColor">#FFFF00</obj_property>
+                  <obj_property name="UseCustomSignalColor">true</obj_property>
+               </wvobject>
+            </wvobject>
+         </wvobject>
+      </wvobject>
+   </wvobject>
+   <wvobject fp_name="group252" type="group">
+      <obj_property name="label">GENERICs and Const</obj_property>
+      <obj_property name="DisplayName">label</obj_property>
+      <wvobject fp_name="/uart_rx_tb/G_DATA_WIDTH" type="other">
+         <obj_property name="ElementShortName">G_DATA_WIDTH</obj_property>
+         <obj_property name="ObjectShortName">G_DATA_WIDTH</obj_property>
+         <obj_property name="CustomSignalColor">#FFFFFF</obj_property>
+         <obj_property name="UseCustomSignalColor">true</obj_property>
+      </wvobject>
+      <wvobject fp_name="/uart_rx_tb/G_RST_LEVEVEL" type="other">
+         <obj_property name="ElementShortName">G_RST_LEVEVEL</obj_property>
+         <obj_property name="ObjectShortName">G_RST_LEVEVEL</obj_property>
+         <obj_property name="CustomSignalColor">#FFFFFF</obj_property>
+         <obj_property name="UseCustomSignalColor">true</obj_property>
+      </wvobject>
+      <wvobject fp_name="/uart_rx_tb/G_SAMPLE_PER_BIT" type="other">
+         <obj_property name="ElementShortName">G_SAMPLE_PER_BIT</obj_property>
+         <obj_property name="ObjectShortName">G_SAMPLE_PER_BIT</obj_property>
+         <obj_property name="CustomSignalColor">#FFFFFF</obj_property>
+         <obj_property name="UseCustomSignalColor">true</obj_property>
+      </wvobject>
+      <wvobject fp_name="/uart_rx_tb/G_LSB_MSB" type="other">
+         <obj_property name="ElementShortName">G_LSB_MSB</obj_property>
+         <obj_property name="ObjectShortName">G_LSB_MSB</obj_property>
+         <obj_property name="CustomSignalColor">#FFFFFF</obj_property>
+         <obj_property name="UseCustomSignalColor">true</obj_property>
+      </wvobject>
+      <wvobject fp_name="/uart_rx_tb/G_USE_BREAK" type="other">
+         <obj_property name="ElementShortName">G_USE_BREAK</obj_property>
+         <obj_property name="ObjectShortName">G_USE_BREAK</obj_property>
+         <obj_property name="CustomSignalColor">#FFFFFF</obj_property>
+         <obj_property name="UseCustomSignalColor">true</obj_property>
+      </wvobject>
+      <wvobject fp_name="/uart_rx_tb/G_USE_OVERRUN" type="other">
+         <obj_property name="ElementShortName">G_USE_OVERRUN</obj_property>
+         <obj_property name="ObjectShortName">G_USE_OVERRUN</obj_property>
+         <obj_property name="CustomSignalColor">#FFFFFF</obj_property>
+         <obj_property name="UseCustomSignalColor">true</obj_property>
+      </wvobject>
+      <wvobject fp_name="/uart_rx_tb/G_USE_FRAMEIN" type="other">
+         <obj_property name="ElementShortName">G_USE_FRAMEIN</obj_property>
+         <obj_property name="ObjectShortName">G_USE_FRAMEIN</obj_property>
+         <obj_property name="CustomSignalColor">#FFFFFF</obj_property>
+         <obj_property name="UseCustomSignalColor">true</obj_property>
+      </wvobject>
+      <wvobject fp_name="/uart_rx_tb/G_USE_PARITY" type="other">
+         <obj_property name="ElementShortName">G_USE_PARITY</obj_property>
+         <obj_property name="ObjectShortName">G_USE_PARITY</obj_property>
+         <obj_property name="CustomSignalColor">#FFFFFF</obj_property>
+         <obj_property name="UseCustomSignalColor">true</obj_property>
+      </wvobject>
+      <wvobject fp_name="/uart_rx_tb/clock_period" type="other">
+         <obj_property name="ElementShortName">clock_period</obj_property>
+         <obj_property name="ObjectShortName">clock_period</obj_property>
+         <obj_property name="CustomSignalColor">#FFFFFF</obj_property>
+         <obj_property name="UseCustomSignalColor">true</obj_property>
+      </wvobject>
+      <wvobject fp_name="/uart_rx_tb/clk_per_bit" type="other">
+         <obj_property name="ElementShortName">clk_per_bit</obj_property>
+         <obj_property name="ObjectShortName">clk_per_bit</obj_property>
+         <obj_property name="CustomSignalColor">#FFFFFF</obj_property>
+         <obj_property name="UseCustomSignalColor">true</obj_property>
+      </wvobject>
+   </wvobject>
+</wave_config>

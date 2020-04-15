@@ -28,7 +28,8 @@ package p_general is
     type LSB_MSB   is (LSB , MSB);
     --! Used PARITY type
     type U_PARITY  is (NONE, EVEN, ODD);
-
+    --! Lin standard
+    type LIN_STD   is (L1 , L2);
 end package;
 
 package body p_general is

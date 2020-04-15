@@ -45,32 +45,41 @@
 --    );
 
 library ieee;
-use ieee.std_logic_1164.all;
+    use ieee.std_logic_1164.all;
+    use ieee.numeric_std.all;
+
+    use work.p_general.all;
+    use work.p_uart.all;
 
 package p_lin is
-    --! Used to select High(HL) ot Low(LL) Reset Level for the module
-   -- type RST_LEVEL is (HL, LL);
-    type LIN_STD   is (L1_0, L2_0);
-    --! Used to select High(HL) ot Low(LL) Reset Level for the module
-    type RST_LEVEL is (HL, LL);
+
+-------------------------------------------------------------------------------------
+--             Constants
+-------------------------------------------------------------------------------------
+    constant G_DATA_WIDTH     : positive  := 8;      -- Default 8
+
+
+-------------------------------------------------------------------------------------
+--             Data Types
+-------------------------------------------------------------------------------------
     --! Type of frame sent
     type FRAME_TIPE is (UNCONDITIONAL, EVENT_TRIGGERED, SPORADIC, DIAGNOSTIC, RESERVERD);
     --!
     type COMNCT_SPEED is (CONST_SPEED, DETECT_SPEED);
                                                       --   31 30 29  28                                    16 15 14 13 12  11                            0
     type TYPE_LIN_DATA is record                      --    |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
-        word0      : std_logic_vector(31 downto 0);   --   "0  0  0" & DESTINATION_ADDRESS (13)              &"0  0  0  0"&    SIZE           (12)
-        word1      : std_logic_vector(31 downto 0);   --               STATUS_INFORMATION  (16)              &"0  0  0"   DESTINATION_ADDRESS (13)
-        word2      : std_logic_vector(31 downto 0);   --                                  TIME_STAMP LOVER    (32)
-        word3      : std_logic_vector(31 downto 0);   --                                  TIME_STAMP HIGHER   (32)
-        word4      : std_logic_vector(31 downto 0);   --    |LIN_DATA_BYTE   4   |  |LIN_DATA_BYTE   3   |  |LIN_DATA_BYTE   2   |  |LIN_DATA_BYTE   1   |
-        word5      : std_logic_vector(31 downto 0);   --    |LIN_DATA_BYTE   8   |  |LIN_DATA_BYTE   7   |  |LIN_DATA_BYTE   6   |  |LIN_DATA_BYTE   5   |
-        word6      : std_logic_vector(31 downto 0);   --    |    ZEROS           |  |    ZEROS           |  |    CHECKSUM        |  |LIN_DATA_BYTE   N   |
-        word7      : std_logic_vector(31 downto 0);
-        word8      : std_logic_vector(31 downto 0);
-        word9      : std_logic_vector(31 downto 0);
-        word10     : std_logic_vector(31 downto 0);
-        word11     : std_logic_vector(31 downto 0);
+        word0      : std_logic_vector(63 downto 0);   --   "0  0  0" & DESTINATION_ADDRESS (13)              &"0  0  0  0"&    SIZE           (12)
+        word1      : std_logic_vector(63 downto 0);   --               STATUS_INFORMATION  (16)              &"0  0  0"   DESTINATION_ADDRESS (13)
+        word2      : std_logic_vector(63 downto 0);   --                                  TIME_STAMP LOVER    (32)
+        word3      : std_logic_vector(63 downto 0);   --                                  TIME_STAMP HIGHER   (32)
+        word4      : std_logic_vector(63 downto 0);   --    |LIN_DATA_BYTE   4   |  |LIN_DATA_BYTE   3   |  |LIN_DATA_BYTE   2   |  |LIN_DATA_BYTE   1   |
+        word5      : std_logic_vector(63 downto 0);   --    |LIN_DATA_BYTE   8   |  |LIN_DATA_BYTE   7   |  |LIN_DATA_BYTE   6   |  |LIN_DATA_BYTE   5   |
+        word6      : std_logic_vector(63 downto 0);   --    |    ZEROS           |  |    ZEROS           |  |    CHECKSUM        |  |LIN_DATA_BYTE   N   |
+        word7      : std_logic_vector(63 downto 0);
+        word8      : std_logic_vector(63 downto 0);
+        word9      : std_logic_vector(63 downto 0);
+        word10     : std_logic_vector(63 downto 0);
+        word11     : std_logic_vector(63 downto 0);
     end record;
 
     constant TYPE_LIN_DATA_RST : TYPE_LIN_DATA := (
@@ -89,25 +98,53 @@ package p_lin is
         ); 
 
 
-    component LIN_fsm is
-        generic(
-            G_DATA_LEN    : integer;
-            G_RST_LEVEVEL : RST_LEVEL;
-            G_LIN_STANDARD: LIN_STD
+    --! LIN FSM interface inputs
+    type TYPE_LIN_FSM_IN is record
+        uart            : TYPE_UART_OUT;  -- Inputs To LIN FSM
+        serial_in       : std_logic;
+    end record;
+
+    -- Reset Values for TYPE_LIN_FSM_IN type data
+    constant TYPE_LIN_FSM_IN_RST : TYPE_LIN_FSM_IN := (
+        uart        => TYPE_UART_OUT_RST,
+        serial_in   => '1');
+
+    type TYPE_LIN_FSM_IN_ARRAY is array (natural range <>) of TYPE_LIN_FSM_IN;
+
+
+    --! LIN FSM interface output
+    type TYPE_LIN_FSM_OUT is record
+        rx_data       : std_logic_vector(G_DATA_WIDTH -1 downto 0); -- Output Recieved Data
+        rx_data_valid : std_logic;
+        en_uart       : std_logic;
+		prescaler     : std_logic_vector(31 downto 0);
+    end record;
+
+    -- Reset Values for TYPE_LIN_FSM_OUT type data
+    constant TYPE_LIN_FSM_OUT_RST : TYPE_LIN_FSM_OUT := (
+        rx_data       => (others => '0'), -- Output Recieved Data
+        rx_data_valid => '0',
+        en_uart       => '0',
+		prescaler     => (others => '0'));
+
+    type TYPE_LIN_FSM_OUT_ARRAY is array (natural range <>) of TYPE_LIN_FSM_OUT;
+
+
+
+
+    component LIN_fsm
+        generic
+        (
+            G_DATA_WIDTH   : positive;
+            G_RST_LEVEVEL  : RST_LEVEL;
+            G_LIN_STANDARD : LIN_STD
         );
-        port   (
-        i_clk           : in  std_logic;                      -- Input CLOCK
-        i_rst           : in  std_logic;                      -- Input Reset for clk
-        i_valid_data    : in  std_logic;                      -- Input Sample signal - comes from BAUD RATE GENERATOR- signal to sample input
-        i_brake         : in  std_logic;                      -- Break Detected
-        i_rxd           : in  std_logic_vector(G_DATA_LEN -1 downto 0); -- Input Reciveve Data bus Line
-        i_err           : in  std_logic;                      -- Output Error and Signaling
-        i_serial_data   : in  std_logic;                      -- Output Error and Signaling
-        o_rx_data       : out std_logic_vector(G_DATA_LEN -1 downto 0); -- Output Recieved Data
-        o_valid         : out std_logic;
-        o_to_mit        : out std_logic;
-        o_uart_en       : out std_logic;
-	    o_prescaler     : out integer
+        port
+        (
+            i_clk           : in  std_logic;        -- Input CLOCK
+            i_rst           : in  std_logic;        -- Input Reset for clk
+            i_lin_fsm       : in  TYPE_LIN_FSM_IN;  -- Input Sample signal - comes from BAUD RATE GENERATOR- signal to sample input
+            o_lin_fsm       : out TYPE_LIN_FSM_OUT
         );
    end component LIN_fsm;
 
@@ -120,7 +157,8 @@ package body p_lin is
   function f_check_parity(data : std_logic_vector(7 downto 0)) return boolean is
     variable ret : boolean;
   begin
-        ret :=( data(6) = ( data(0) xor data(1) xor data(2) xor data(4))) and (data(7) = not(data(1) xor data(3) xor data(4) xor data(5) )) ;
+        ret :=( data(6) =    ( data(0) xor data(1) xor data(2) xor data(4) )) and 
+		      ( data(7) = not( data(1) xor data(3) xor data(4) xor data(5) )) ;
     return ret;
   end function;
 

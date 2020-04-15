@@ -128,9 +128,9 @@ architecture Behavioral of uart_rx is
     signal c_in         : TYPE_UART_IN;
 
     -- signal - Registered siginficant values that would be forvarded to output or used for checks in code
-    signal r_ctrl       : TYPE_CTRL_REG;
+    signal r_uart_ctrl  : TYPE_CTRL_REG;
     -- signal - Values Updated in combinational process that will be registered on the risinf edge of clk
-    signal c_ctrl       : TYPE_CTRL_REG;
+    signal c_uart_ctrl  : TYPE_CTRL_REG;
 
     -- signal - Registered siginficant values that would be forvarded to output or used for checks in code
     signal r_out        : TYPE_UART_OUT;
@@ -202,9 +202,9 @@ reg_ctrl_proc:
     begin
         if rising_edge(i_clk) then
             if(s_reset = '1') then
-                r_ctrl     <= TYPE_CTRL_REG_RST;
+                r_uart_ctrl     <= TYPE_CTRL_REG_RST;
             else
-                r_ctrl     <= c_ctrl;
+                r_uart_ctrl     <= c_uart_ctrl;
             end if;
         end if;
     end process reg_ctrl_proc;
@@ -229,29 +229,29 @@ reg_out_proc:
 -------------------------------------------------------------------------------------------------------
 
 comb_out_proc:
-    process(r_in, r_in_ctrl, i_uart, r_out, r_ctrl)
+    process(r_in, r_in_ctrl, i_uart, r_out, r_uart_ctrl)
 --    process(r_in.ena, r_in.rxd, r_in.data_acc, r_in.valid, i_rxd,
---            r_out.break , r_out.overrun_err , r_out.framein_err , r_out.parity_err , r_out.rx_data , r_out.valid , r_ctrl.fsm , r_ctrl.cnt , r_ctrl.break_cnt ,
+--            r_out.break , r_out.overrun_err , r_out.framein_err , r_out.parity_err , r_out.rx_data , r_out.valid , r_uart_ctrl.fsm , r_uart_ctrl.cnt , r_uart_ctrl.break_cnt ,
 --            i_sample)
         variable V_ctrl    : TYPE_CTRL_REG;
         variable V_out     : TYPE_UART_OUT;
 
     begin
         V_out              := r_out;
-        V_ctrl             := r_ctrl;
+        V_ctrl             := r_uart_ctrl;
 
         V_ctrl.valid_sample:= r_in_ctrl.valid;
 
         if r_in.ena = '1' then
-            case (r_ctrl.fsm) is
+            case (r_uart_ctrl.fsm) is
                 -- Default FSM state (signals are in reset value)- waits for start bit
                 -- Sets Counter cnt depending on LSB or MSB data notation expected
                 when IDLE =>
-                    V_out.parity_err := '0';
-                    if (i_uart.rxd = '0') then
+                    --V_out.parity_err := '0';
+                    --if (i_uart.rxd = '0') then
                         V_ctrl := TYPE_CTRL_REG_RST;
                         V_out  := TYPE_UART_OUT_RST;
-                    end if;
+                    --end if;
                     -- Sets Counter cnt depending on LSB or MSB data notation expected
                     if (G_LSB_MSB = LSB) then
                         V_ctrl.cnt := 0;
@@ -266,11 +266,11 @@ comb_out_proc:
                 -- Takes G_DATA_WIDTH bits after START_BIT to be registered
                 -- Next state is - PARITY(if used), or STOP_BIT if PARITY is not used
                 when UART_MSG =>
-                    if r_in_ctrl.valid = '1' and r_ctrl.valid_sample = '0' then
-                        V_out.rx_data(r_ctrl.cnt) := r_in.rxd;
+                    if r_in_ctrl.valid = '1' and r_uart_ctrl.valid_sample = '0' then
+                        V_out.rx_data(r_uart_ctrl.cnt) := r_in.rxd;
 
                         if (G_LSB_MSB = LSB) then
-                            if(r_ctrl.cnt = G_DATA_WIDTH -1) then
+                            if(r_uart_ctrl.cnt = G_DATA_WIDTH -1) then
                                 if (G_USE_PARITY = ODD or G_USE_PARITY = EVEN) then
                                     V_ctrl.fsm  := PARITY;
                                 else
@@ -279,10 +279,10 @@ comb_out_proc:
                                 V_ctrl.cnt := 0;
                             else
                                 V_ctrl.fsm  := UART_MSG;
-                                V_ctrl.cnt  := r_ctrl.cnt +1;
+                                V_ctrl.cnt  := r_uart_ctrl.cnt +1;
                             end if;
                         else
-                            if(r_ctrl.cnt = 0) then
+                            if(r_uart_ctrl.cnt = 0) then
                                 if (G_USE_PARITY = ODD or G_USE_PARITY = EVEN) then
                                     V_ctrl.fsm  := PARITY;
                                 else
@@ -291,7 +291,7 @@ comb_out_proc:
                                 V_ctrl.cnt  := 0;
                             else
                                 V_ctrl.fsm  := UART_MSG;
-                                V_ctrl.cnt  := r_ctrl.cnt -1;
+                                V_ctrl.cnt  := r_uart_ctrl.cnt -1;
                             end if;
                         end if;
                     end if;
@@ -322,7 +322,7 @@ comb_out_proc:
                 --             if tehere is no errors rises VALID data signal
                 --      BREAK- if all data recieved are Zeros(and STOP bit is Zero) break is detected(if used)
                 when STOP_BIT =>
-                    if r_in_ctrl.valid = '1' and r_ctrl.valid_sample = '0' then
+                    if r_in_ctrl.valid = '1' and r_uart_ctrl.valid_sample = '0' then
                         if (r_in.rxd = '1') then
                             V_out.valid := '1';
 
@@ -352,8 +352,8 @@ comb_out_proc:
                                      V_out.break       := '1';
                                      V_out.valid       := '0';
                                      if (G_USE_FRAMEIN = true) then
-                                         V_ctrl.break_cnt  := r_ctrl.break_cnt +1;
-                                         if r_ctrl.break_cnt >= const_timeout then --timeout
+                                         V_ctrl.break_cnt  := r_uart_ctrl.break_cnt +1;
+                                         if r_uart_ctrl.break_cnt >= const_timeout then --timeout
                                              V_out.framein_err := '1';
                                              V_out.break       := '0';
                                          end if;
@@ -372,7 +372,7 @@ comb_out_proc:
         end if;
 
         -- Assign valuses that should be registered
-        c_ctrl <= V_ctrl;
+        c_uart_ctrl <= V_ctrl;
         c_out  <= V_out;
     end process comb_out_proc;
 

@@ -11,98 +11,53 @@
 -- Design Unit : LIN_fsm.vhd
 -- Library     :
 ---------------------------------------------------------------------------
+library ieee;
+    use ieee.std_logic_1164.all;
+    use ieee.numeric_std.all;
 
-
-library IEEE;
-use IEEE.STD_LOGIC_1164.ALL;
-
-use work.p_lin.all;
+    use work.p_general.all;
+    use work.p_lin.all;
+    use work.p_uart.all;
 
 entity LIN_fsm is
-    generic(
-        G_DATA_LEN    : integer   := 8;
-        G_RST_LEVEVEL : RST_LEVEL := HL;
-        G_LIN_STANDARD: LIN_STD   := L2_0
-        );
-    port   (
-        i_clk           : in  std_logic;                      -- Input CLOCK
-        i_rst           : in  std_logic;                      -- Input Reset for clk
-        i_valid_data    : in  std_logic;                      -- Input Sample signal - comes from BAUD RATE GENERATOR- signal to sample input
-        i_brake         : in  std_logic;                      -- Break Detected
-        i_rxd           : in  std_logic_vector(G_DATA_LEN -1 downto 0); -- Input Reciveve Data bus Line
-        i_err           : in  std_logic;                      -- Output Error and Signaling
-        i_serial_data   : in  std_logic;                      -- Output Error and Signaling
-        o_rx_data       : out std_logic_vector(G_DATA_LEN -1 downto 0); -- Output Recieved Data
-        o_valid         : out std_logic;
-        o_to_mit        : out std_logic;
-        o_uart_en       : out std_logic;
-		  o_prescaler     : out integer range 0 to 256
-        );
+    generic
+    (
+        G_DATA_WIDTH   : positive  := 8;
+        G_RST_LEVEVEL  : RST_LEVEL := HL;
+        G_LIN_STANDARD : LIN_STD   := L2
+    );
+    port
+    (
+        i_clk           : in  std_logic;        -- Input CLOCK
+        i_rst           : in  std_logic;        -- Input Reset for clk
+        i_lin_fsm       : in  TYPE_LIN_FSM_IN;  -- Input Sample signal - comes from BAUD RATE GENERATOR- signal to sample input
+        o_lin_fsm       : out TYPE_LIN_FSM_OUT
+    );
 end LIN_fsm;
 
 architecture Behavioral of LIN_fsm is
 
-    -- Inputs registered
-    type TYPE_IN_REG is record
-        valid_data  : std_logic;                      -- Input Sample signal - comes from BAUD RATE GENERATOR- signal to sample input
-        brake       : std_logic;                      -- Input Uart Enable Signal
-        uart_err    : std_logic;                      -- Input Reciveve Data bus Line
-        rxd         : std_logic_vector(G_DATA_LEN -1 downto 0);  -- Input Data Recieved througth UART are stored/used
-        serial_in   : std_logic;
-    end record;
+    type TYPE_LIN_FSM is (IDLE, BREAK, SYNC, PID, DATA, CHECKSUM, LIN_ERR);
 
-    -- Reset Values for TYPE_IN_REG type data
-    constant TYPE_IN_REG_RST : TYPE_IN_REG := (
-        valid_data  => '0',
-        brake       => '0',
-        uart_err    => '0',
-        rxd         => (others => '0'),
-        serial_in   => '1');
-
-    type TYPE_CTRL_REG is record
-        err        : std_logic;
-        data       : std_logic_vector(G_DATA_LEN -1 downto 0);
-        lin_valid  : std_logic;
-
+    type TYPE_LIN_FSM_CTRL is record
         sync_cnt        : integer range 0 to 8;  -- napravi ovo kao std_logic_vec!!! ili unsigned, a?
         clk_cnt0        : integer range 0 to 256;               -- napravi ovo kao std_logic_vec!!! ili unsigned, a?
         clk_cnt1        : integer range 0 to 256;               -- napravi ovo kao std_logic_vec!!! ili unsigned, a?
         clk_cnt2        : integer range 0 to 256;               -- napravi ovo kao std_logic_vec!!! ili unsigned, a?
         clk_cnt_final   : integer range 0 to 256;               -- napravi ovo kao std_logic_vec!!! ili unsigned, a?
+        fsm             : TYPE_LIN_FSM;
+        check_sum       : unsigned(8 downto 0);
+        frame_type      : FRAME_TIPE; -- (UNCONDITIONAL, EVENT_TRIGGERED, SPORADIC, DIAGNOSTIC)
+        frame_len       : integer range 0 to 8;  -- napravi ovo kao std_logic_vec!!! ili unsigned, a?
+        frame_cnt       : integer range 0 to 8;  -- napravi ovo kao std_logic_vec!!! ili unsigned, a?
     end record;
 
-    constant TYPE_CTRL_REG_RST : TYPE_CTRL_REG := (
-        err           => '0',
-        data          => (others => '0'),
-        lin_valid     => '0',
-
+    constant TYPE_LIN_FSM_CTRL_RST : TYPE_LIN_FSM_CTRL := (
         sync_cnt      =>  0,
         clk_cnt0      =>  0,    --UNCONDITIONAL, EVENT_TRIGGERED, SPORADIC, DIAGNOSTIC
         clk_cnt1      =>  0,    --UNCONDITIONAL, EVENT_TRIGGERED, SPORADIC, DIAGNOSTIC
         clk_cnt2      =>  0,    --UNCONDITIONAL, EVENT_TRIGGERED, SPORADIC, DIAGNOSTIC
-        clk_cnt_final =>  0);   --UNCONDITIONAL, EVENT_TRIGGERED, SPORADIC, DIAGNOSTIC
-
-    signal r_ctrl, c_ctrl : TYPE_CTRL_REG;
-
-    type TYPE_LIN_FSM is (IDLE, BREAK, SYNC, PID, DATA, CHECKSUM, LIN_ERR);
-
-    type TYPE_FSM_REG is record
-        break      : std_logic;
-        err        : std_logic;
-        data       : std_logic_vector(G_DATA_LEN -1 downto 0);
-        lin_valid  : std_logic;
-        fsm        : TYPE_LIN_FSM;
-        check_sum  : std_logic_vector(7 downto 0);
-        frame_type : FRAME_TIPE; -- (UNCONDITIONAL, EVENT_TRIGGERED, SPORADIC, DIAGNOSTIC)
-        frame_len  : integer range 0 to 8;  -- napravi ovo kao std_logic_vec!!! ili unsigned, a?
-        frame_cnt  : integer range 0 to 8;  -- napravi ovo kao std_logic_vec!!! ili unsigned, a?
-    end record;
-
-    constant TYPE_FSM_REG_RST : TYPE_FSM_REG := (
-        break        => '0',
-        err          => '0',
-        data         => (others => '0'),
-        lin_valid    => '0',
+        clk_cnt_final =>  0,
         fsm          => IDLE,
         check_sum    => (others => '0'),
         frame_type   => UNCONDITIONAL,
@@ -123,21 +78,22 @@ architecture Behavioral of LIN_fsm is
 -- prouci lin specifikaciju
 -- iskomentarisi kod
 ----------------------------------------------------------------------------------------------------
+    -- signal - Registered inputs to the module
+    signal r_in       : TYPE_LIN_FSM_IN;
+    -- signal - Contains input values to be registered
+    signal c_in       : TYPE_LIN_FSM_IN;
+
+    signal r_lin_ctrl : TYPE_LIN_FSM_CTRL;
+    signal c_lin_ctrl : TYPE_LIN_FSM_CTRL;
+
 
     -- signal - Registered inputs to the module
-    signal r_in       : TYPE_IN_REG;
+    signal r_out      : TYPE_LIN_FSM_OUT;
     -- signal - Contains input values to be registered
-    signal c_in       : TYPE_IN_REG;
-
--------------------------------------------------------------------------------------------------
-
-    signal r_lin, c_lin : TYPE_FSM_REG;
-
+    signal c_out      : TYPE_LIN_FSM_OUT;
  -------------------------------------------------------------------------------------------------
 
     signal s_out_data : TYPE_LIN_DATA;
-    -- signal - High after sync field when sample counters for UART are set
-    signal s_uart_en  : std_logic;
     -- signal - takes High Level if there is active RESET on the module input
     signal s_reset    : std_logic;
 
@@ -158,7 +114,7 @@ reg_in_proc:
     begin
         if rising_edge(i_clk) then
             if(s_reset = '1') then
-                r_in       <= TYPE_IN_REG_RST;
+                r_in       <=TYPE_LIN_FSM_IN_RST;
             else
                 r_in       <= c_in;
             end if;
@@ -167,20 +123,14 @@ reg_in_proc:
 
 
 comb_in_proc:
---    process(r_in, i_rxd, i_brake, i_valid_data, i_err, i_serial_data)
-    process(r_in.valid_data , r_in.brake , r_in.uart_err , r_in.rxd , r_in.serial_in, 
-            i_rxd, i_brake, i_valid_data, i_err, i_serial_data)
-        variable V         : TYPE_IN_REG;
+    process(r_in.uart, r_in.uart.valid, i_lin_fsm.uart, i_lin_fsm.uart.valid, i_lin_fsm.serial_in)
+        variable V   : TYPE_LIN_FSM_IN;
     begin
-        V            := r_in;
-
-        V.brake      := i_brake;
-        V.valid_data := i_valid_data;
-        V.uart_err   := i_err;
-        V.serial_in  := i_serial_data;
-
-        if i_valid_data = '1' and r_in.valid_data = '0' then
-            V.rxd      := i_rxd;
+        V.uart            := r_in.uart;
+        V.serial_in       := i_lin_fsm.serial_in;
+        V.uart.valid      := i_lin_fsm.uart.valid;
+        if i_lin_fsm.uart.valid = '1' and r_in.uart.valid = '0' then
+            V.uart        := i_lin_fsm.uart;
         end if;
         -- Assign valuses that should be registered
         c_in       <= V;
@@ -198,9 +148,9 @@ reg_ctrl_proc:
     begin
         if rising_edge(i_clk) then
             if(s_reset = '1') then
-                r_ctrl       <= TYPE_CTRL_REG_RST;
+                r_lin_ctrl       <= TYPE_LIN_FSM_CTRL_RST;
             else
-                r_ctrl       <= c_ctrl;
+                r_lin_ctrl       <= c_lin_ctrl;
             end if;
         end if;
     end process reg_ctrl_proc;
@@ -217,134 +167,164 @@ LIN_fsm_syn_proc:
     begin
         if rising_edge(i_clk) then
             if(s_reset = '1') then
-                r_lin <= TYPE_FSM_REG_RST;
+                r_out <= TYPE_LIN_FSM_OUT_RST;
             else
-                r_lin <= c_lin;
+                r_out <= c_out;
             end if;
         end if;
     end process LIN_fsm_syn_proc;
 
 
 LIN_fsm_comb_proc:
---    process(r_lin, r_in, r_ctrl, i_valid_data, i_serial_data)
-    process(r_lin.break , r_lin.err , r_lin.data , r_lin.lin_valid , r_lin.fsm , r_lin.check_sum , r_lin.frame_type , r_lin.frame_len , r_lin.frame_cnt ,
-            r_in.valid_data , r_in.brake , r_in.uart_err , r_in.rxd , r_in.serial_in,
-            r_ctrl.err , r_ctrl.data , r_ctrl.lin_valid , r_ctrl.sync_cnt , r_ctrl.clk_cnt0 , r_ctrl.clk_cnt1 , r_ctrl.clk_cnt2 , r_ctrl.clk_cnt_final, 
-            i_valid_data, i_serial_data)
-        variable V       : TYPE_FSM_REG;
-        variable V_ctrl  : TYPE_CTRL_REG;
-    begin
-        V       := r_lin;
+    process(r_out, r_in, r_in.serial_in, i_lin_fsm, i_lin_fsm.serial_in, r_lin_ctrl)
+variable vvvvvvvvvvvvvvvv: unsigned(8 downto 0) := (others => '0');
+variable vvv             : std_logic_vector(7 downto 0) := (others => '0');
 
-            case (r_lin.fsm) is
+        variable V       : TYPE_LIN_FSM_OUT;
+        variable V_ctrl  : TYPE_LIN_FSM_CTRL;
+    begin
+        V       := r_out;
+        V_ctrl  := r_lin_ctrl;
+  
+            case (r_lin_ctrl.fsm) is
+                -- Lin waits for break signal. Here,
+                -- '0' detected will be treated as break
+                -- when LIN_fsm is in IDLE state.
                 when IDLE      =>
-                    V  := TYPE_FSM_REG_RST;
+                    V      := TYPE_LIN_FSM_OUT_RST;
+                    V_ctrl := TYPE_LIN_FSM_CTRL_RST;
                     if r_in.serial_in = '0' then
-                        V.fsm := BREAK;
+                        V_ctrl.fsm := BREAK;
                     end if;
-                    s_uart_en <= '0';
+
+                -- After BREAK is detected LIN_fsm stays
+                -- in this state until STOP bit is detected
+                -- on the serial input
                 when BREAK     =>
                     if r_in.serial_in = '1' then
-                        V.fsm := SYNC;
+                        V_ctrl.fsm := SYNC;
                     end if;
 
+                -- After Break Sync sequence should appear
+                -- It is 0x55 sequence send in LSB fasion
+                -- it is used in slaves to adjust to master
+                -- data speed. Here, after sync is recieved
+                -- UART_rx module is enabled to catch 
+                -- PID and the messages
                 when SYNC      =>
-                      if (i_serial_data = '1' and r_in.serial_in = '0') then
-                          V_ctrl.sync_cnt := r_ctrl.sync_cnt +1;
+                      if (i_lin_fsm.serial_in = '1' and r_in.serial_in = '0') then
+                          V_ctrl.sync_cnt := r_lin_ctrl.sync_cnt +1;
                       end if;
 
-                      if (r_ctrl.sync_cnt = 1) then
-                          V_ctrl.clk_cnt0 := r_ctrl.clk_cnt0 +1;
+                      if (r_lin_ctrl.sync_cnt = 1) then
+                          V_ctrl.clk_cnt0 := r_lin_ctrl.clk_cnt0 +1;
                       end if;
 
-                      if (r_ctrl.sync_cnt = 2) then
-                          V_ctrl.clk_cnt1 := r_ctrl.clk_cnt1 +1;
+                      if (r_lin_ctrl.sync_cnt = 2) then
+                          V_ctrl.clk_cnt1 := r_lin_ctrl.clk_cnt1 +1;
                       end if;
 
-                      if (r_ctrl.sync_cnt = 3) then
-                          V_ctrl.clk_cnt2 := r_ctrl.clk_cnt2 +1;
+                      if (r_lin_ctrl.sync_cnt = 3) then
+                          V_ctrl.clk_cnt2 := r_lin_ctrl.clk_cnt2 +1;
                       end if;
 
-                      if (r_ctrl.sync_cnt = 5 and r_in.serial_in = '1') then
-                          V_ctrl.clk_cnt_final := r_ctrl.clk_cnt1;
-                          s_uart_en <= '1';
-                          V.fsm     := PID;
+                      if (r_lin_ctrl.sync_cnt = 5 and r_in.serial_in = '1') then
+                          V_ctrl.clk_cnt_final := r_lin_ctrl.clk_cnt1;
+                          V.prescaler    := std_logic_vector(to_unsigned(V_ctrl.clk_cnt_final, 32));
+                          V.en_uart      := '1';
+                          V_ctrl.fsm     := PID;
                       end if;
 
--------------------- implement no sync error !!!
---   vidi da se rijesi na uartu ovo
--- sync na sample malo zakasnjen i counter ukljucen
---                    if r_in.rxd = x"55" then
---                        V.fsm := PID;
---                    else
---                        V.fsm := LIN_ERR;
---                    end if;
-
+                -- Unique ID, sent by master after SYNC signal
+                -- When recieved, ID validity and parity should be
+                -- checked
                 when PID       =>
-                    if i_valid_data = '0' and r_in.valid_data = '1' then
-                    if f_valid_id(r_in.rxd) = '1' then
-                        V.fsm   := LIN_ERR;
-                        if f_check_parity(r_in.rxd) = true then
-                            V.fsm        := DATA;
+                if i_lin_fsm.uart.valid = '0' and r_in.uart.valid = '1' then
+                    V.rx_data_valid   := '0';
+                    if f_valid_id(r_in.uart.rx_data) = '1' then
+                        V_ctrl.fsm   := LIN_ERR;
+                        V.rx_data    := r_in.uart.rx_data;
+                        if f_check_parity(r_in.uart.rx_data) = true then
+                            V.rx_data_valid   := '1';
 
-                            V.frame_type := UNCONDITIONAL;
+                            V_ctrl.fsm        := DATA;
+                            V_ctrl.frame_type := UNCONDITIONAL;
 
-                            if    r_in.rxd(5 downto 4) = "11" then
-                                V.frame_len := 8;
-                                if r_in.rxd(3 downto 0) = X"C" or r_in.rxd(3 downto 0) = X"D" then
-                                    V.frame_type := DIAGNOSTIC;
-                                elsif r_in.rxd(3 downto 0) = X"E" or r_in.rxd(3 downto 0) = X"F" then
-                                    V.frame_type := RESERVERD;
+                            -- Check frame length
+                            if r_in.uart.rx_data(5 downto 4) = "11" then
+                                V_ctrl.frame_len := 8;
+                                if r_in.uart.rx_data(3 downto 0) = X"C" or r_in.uart.rx_data(3 downto 0) = X"D" then
+                                    V_ctrl.frame_type := DIAGNOSTIC;
+                                elsif r_in.uart.rx_data(3 downto 0) = X"E" or r_in.uart.rx_data(3 downto 0) = X"F" then
+                                    V_ctrl.frame_type := RESERVERD;
                                 end if;
-                            elsif r_in.rxd(5 downto 4) = "10" then
-                                V.frame_len := 4;
+                            elsif r_in.uart.rx_data(5 downto 4) = "10" then
+                                V_ctrl.frame_len := 4;
                             else  -- r_in.rxd(5 downto 4) = "00" or r_in.rxd(5 downto 4) = "01"
-                                V.frame_len := 2;
+                                V_ctrl.frame_len := 2;
                             end if;
 
-                            if(G_LIN_STANDARD = L2_0) then
-                                V.check_sum := r_lin.check_sum xor r_in.rxd;
+                            -- if LIN 2.x standard is used, calculate checksum
+                            -- using PID and MESSAGE frames
+                            if(G_LIN_STANDARD = L2) then
+                                V_ctrl.check_sum(7 downto 0) := r_lin_ctrl.check_sum + unsigned(r_in.uart.rx_data);
                             end if;
                         end if;
                     else
-                        V.fsm   := LIN_ERR;
+                        V_ctrl.fsm   := LIN_ERR;
                     end if;
-                    end if;
+                end if;
 
                 when DATA      =>
-                    if i_valid_data = '1' and r_in.valid_data = '0' then
-                        V.fsm       := DATA;
-                        if (r_lin.frame_cnt >= r_lin.frame_len -1) then
-                            V.fsm   := CHECKSUM;
+                    V.rx_data_valid  := '0';
+                    if i_lin_fsm.uart.valid = '0' and r_in.uart.valid = '1' then
+                        V.rx_data        := r_in.uart.rx_data;
+                        V.rx_data_valid  := '1';
+
+                        V_ctrl.fsm       := DATA;
+                        if (r_lin_ctrl.frame_cnt >= r_lin_ctrl.frame_len -1) then
+                            V_ctrl.fsm   := CHECKSUM;
                         end if;
-                        V.check_sum := r_lin.check_sum xor r_in.rxd;
-                        V.frame_cnt := r_lin.frame_cnt +1;
+
+                        for i in 0 to 7 loop
+                            vvvvvvvvvvvvvvvv(7 -i) := r_in.uart.rx_data(i);
+                        end loop;
+                        vvvvvvvvvvvvvvvv(8) := '0';
+                        V_ctrl.check_sum := r_lin_ctrl.check_sum + vvvvvvvvvvvvvvvv; --unsigned(r_in.uart.rx_data(0 to 7));
+                        if(V_ctrl.check_sum(0) = '1') then
+                            V_ctrl.check_sum(0) := '0';
+                            V_ctrl.check_sum    := V_ctrl.check_sum +1;
+                        end if;
+                        V_ctrl.frame_cnt := r_lin_ctrl.frame_cnt +1;
                     end if;
 
                 when CHECKSUM  =>
-                    if i_valid_data = '1' and r_in.valid_data = '0' then
-                        if (not(r_lin.check_sum) xor r_in.rxd) = "00000000" then
-                            V.fsm       := IDLE;
-                            V.lin_valid := '1';
-                        else
-                            V.fsm       := LIN_ERR;
-                            V.lin_valid := '0';
+                    V.rx_data_valid  := '0';
+                    if i_lin_fsm.uart.valid = '0' and r_in.uart.valid = '1' then
+                        V.rx_data        := r_in.uart.rx_data;
+                        V_ctrl.fsm       := LIN_ERR;
+                        
+                        for i in 0 to 7 loop
+                            vvvvvvvvvvvvvvvv(7 -i) := r_in.uart.rx_data(i);
+                        end loop;
+                        
+                                                                                                   --r_in.uart.rx_data;
+                        if (std_logic_vector(r_lin_ctrl.check_sum(7 downto 0)) xor std_logic_vector(vvvvvvvvvvvvvvvv(7 downto 0))) = x"FF" then
+                            V_ctrl.fsm       := IDLE;
+                            V.rx_data_valid  := '1';
                         end if;
                     end if;
 
                 when LIN_ERR   =>
-                    if i_valid_data = '1' and r_in.valid_data = '0' then
-                        V.fsm := IDLE;
+                    if r_in.serial_in = '1' then
+                        V_ctrl.fsm := IDLE;
                     end if;
             end case;
 
-        c_lin <= V;
-		  c_ctrl <= V_ctrl;
+          c_out      <= V;
+		  c_lin_ctrl <= V_ctrl;
     end process;
 
-    o_valid     <= r_lin.lin_valid;
-    o_rx_data   <= r_lin.data;
-    o_uart_en   <= s_uart_en;
-	o_prescaler <= r_ctrl.clk_cnt_final;
+    o_lin_fsm <= r_out;
 end Behavioral;
 

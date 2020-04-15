@@ -50,17 +50,17 @@ entity uart_rx_top is
         G_LSB_MSB          : LSB_MSB   := LSB;
         --! Use Brake signal detection,
         --! Data Type: boolean, Default value: false
-        G_USE_BREAK        : boolean   := true;
+        G_USE_BREAK        : boolean   := false;
         --! Use Overrun Error detection,
         --! Data Type: boolean, Default value: false
-        G_USE_OVERRUN      : boolean   := true;
+        G_USE_OVERRUN      : boolean   := false;
         --! Use Frameing Error detection,
         --! Data Type: boolean, Default value: false
-        G_USE_FRAMEIN      : boolean   := true;
+        G_USE_FRAMEIN      : boolean   := false;
         --! Use Frameing Error detection,
         --! Data Type: U_PARITY(type deined in p_general package), Default value: NONE
         --! NONE(Parity not used), ODD(odd parity), EVEN(Even parity)
-        G_USE_PARITY       : U_PARITY  := ODD
+        G_USE_PARITY       : U_PARITY  := NONE
         );
     port   (
         --! Input CLOCK

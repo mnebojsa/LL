@@ -1,0 +1,212 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<wave_config>
+   <wave_state>
+   </wave_state>
+   <db_ref_list>
+      <db_ref path="data_sample_tb_behav.wdb" id="1">
+         <top_modules>
+            <top_module name="data_sample_tb" />
+            <top_module name="p_general" />
+            <top_module name="p_uart" />
+         </top_modules>
+      </db_ref>
+   </db_ref_list>
+   <zoom_setting>
+      <ZoomStartTime time="0fs"></ZoomStartTime>
+      <ZoomEndTime time="101000001fs"></ZoomEndTime>
+      <Cursor1Time time="18895000fs"></Cursor1Time>
+   </zoom_setting>
+   <column_width_setting>
+      <NameColumnWidth column_width="207"></NameColumnWidth>
+      <ValueColumnWidth column_width="80"></ValueColumnWidth>
+   </column_width_setting>
+   <WVObjectSize size="3" />
+   <wvobject fp_name="group96" type="group">
+      <obj_property name="label">tb_signals</obj_property>
+      <obj_property name="DisplayName">label</obj_property>
+      <obj_property name="isExpanded"></obj_property>
+      <wvobject fp_name="/data_sample_tb/i_clk" type="logic">
+         <obj_property name="ElementShortName">i_clk</obj_property>
+         <obj_property name="ObjectShortName">i_clk</obj_property>
+      </wvobject>
+      <wvobject fp_name="/data_sample_tb/i_rst" type="logic">
+         <obj_property name="ElementShortName">i_rst</obj_property>
+         <obj_property name="ObjectShortName">i_rst</obj_property>
+      </wvobject>
+      <wvobject fp_name="/data_sample_tb/i_ds" type="array">
+         <obj_property name="ElementShortName">i_ds</obj_property>
+         <obj_property name="ObjectShortName">i_ds</obj_property>
+         <obj_property name="isExpanded"></obj_property>
+      </wvobject>
+      <wvobject fp_name="/data_sample_tb/o_ds" type="array">
+         <obj_property name="ElementShortName">o_ds</obj_property>
+         <obj_property name="ObjectShortName">o_ds</obj_property>
+         <obj_property name="isExpanded"></obj_property>
+      </wvobject>
+      <wvobject fp_name="/data_sample_tb/s_data_to_send" type="array">
+         <obj_property name="ElementShortName">s_data_to_send[0:9]</obj_property>
+         <obj_property name="ObjectShortName">s_data_to_send[0:9]</obj_property>
+      </wvobject>
+      <wvobject fp_name="/data_sample_tb/s_byte_to_send" type="array">
+         <obj_property name="ElementShortName">s_byte_to_send[0:7]</obj_property>
+         <obj_property name="ObjectShortName">s_byte_to_send[0:7]</obj_property>
+      </wvobject>
+      <wvobject fp_name="/data_sample_tb/cnt" type="other">
+         <obj_property name="ElementShortName">cnt</obj_property>
+         <obj_property name="ObjectShortName">cnt</obj_property>
+      </wvobject>
+   </wvobject>
+   <wvobject fp_name="group95" type="group">
+      <obj_property name="label">GENERICs and Const</obj_property>
+      <obj_property name="DisplayName">label</obj_property>
+      <wvobject fp_name="/data_sample_tb/G_RST_LEVEVEL" type="other">
+         <obj_property name="ElementShortName">G_RST_LEVEVEL</obj_property>
+         <obj_property name="ObjectShortName">G_RST_LEVEVEL</obj_property>
+         <obj_property name="CustomSignalColor">#FFFFFF</obj_property>
+         <obj_property name="UseCustomSignalColor">true</obj_property>
+      </wvobject>
+      <wvobject fp_name="/data_sample_tb/G_SAMPLE_USED" type="other">
+         <obj_property name="ElementShortName">G_SAMPLE_USED</obj_property>
+         <obj_property name="ObjectShortName">G_SAMPLE_USED</obj_property>
+         <obj_property name="CustomSignalColor">#FFFFFF</obj_property>
+         <obj_property name="UseCustomSignalColor">true</obj_property>
+      </wvobject>
+      <wvobject fp_name="/data_sample_tb/G_SAMPLE_PER_BIT" type="other">
+         <obj_property name="ElementShortName">G_SAMPLE_PER_BIT</obj_property>
+         <obj_property name="ObjectShortName">G_SAMPLE_PER_BIT</obj_property>
+         <obj_property name="CustomSignalColor">#FFFFFF</obj_property>
+         <obj_property name="UseCustomSignalColor">true</obj_property>
+      </wvobject>
+      <wvobject fp_name="/data_sample_tb/G_DATA_WIDTH" type="other">
+         <obj_property name="ElementShortName">G_DATA_WIDTH</obj_property>
+         <obj_property name="ObjectShortName">G_DATA_WIDTH</obj_property>
+         <obj_property name="CustomSignalColor">#FFFFFF</obj_property>
+         <obj_property name="UseCustomSignalColor">true</obj_property>
+      </wvobject>
+      <wvobject fp_name="/data_sample_tb/clock_period" type="other">
+         <obj_property name="ElementShortName">clock_period</obj_property>
+         <obj_property name="ObjectShortName">clock_period</obj_property>
+         <obj_property name="CustomSignalColor">#FFFFFF</obj_property>
+         <obj_property name="UseCustomSignalColor">true</obj_property>
+      </wvobject>
+   </wvobject>
+   <wvobject fp_name="group131" type="group">
+      <obj_property name="label">DATA_SAMPLE Module</obj_property>
+      <obj_property name="DisplayName">label</obj_property>
+      <obj_property name="isExpanded"></obj_property>
+      <wvobject fp_name="/data_sample_tb/uut/i_clk" type="logic">
+         <obj_property name="ElementShortName">i_clk</obj_property>
+         <obj_property name="ObjectShortName">i_clk</obj_property>
+      </wvobject>
+      <wvobject fp_name="/data_sample_tb/uut/i_rst" type="logic">
+         <obj_property name="ElementShortName">i_rst</obj_property>
+         <obj_property name="ObjectShortName">i_rst</obj_property>
+      </wvobject>
+      <wvobject fp_name="group132" type="group">
+         <obj_property name="label">Data Sample inputs</obj_property>
+         <obj_property name="DisplayName">label</obj_property>
+         <obj_property name="isExpanded"></obj_property>
+         <wvobject fp_name="/data_sample_tb/uut/i_ds" type="array">
+            <obj_property name="ElementShortName">i_ds</obj_property>
+            <obj_property name="ObjectShortName">i_ds</obj_property>
+            <obj_property name="isExpanded"></obj_property>
+            <wvobject fp_name="/data_sample_tb/uut/i_ds.sample" type="logic">
+               <obj_property name="ElementShortName">.sample</obj_property>
+               <obj_property name="ObjectShortName">.sample</obj_property>
+               <obj_property name="CustomSignalColor">#FFFF00</obj_property>
+               <obj_property name="UseCustomSignalColor">true</obj_property>
+            </wvobject>
+            <wvobject fp_name="/data_sample_tb/uut/i_ds.ena" type="logic">
+               <obj_property name="ElementShortName">.ena</obj_property>
+               <obj_property name="ObjectShortName">.ena</obj_property>
+               <obj_property name="CustomSignalColor">#FFFF00</obj_property>
+               <obj_property name="UseCustomSignalColor">true</obj_property>
+            </wvobject>
+            <wvobject fp_name="/data_sample_tb/uut/i_ds.rxd" type="logic">
+               <obj_property name="ElementShortName">.rxd</obj_property>
+               <obj_property name="ObjectShortName">.rxd</obj_property>
+               <obj_property name="CustomSignalColor">#FFFF00</obj_property>
+               <obj_property name="UseCustomSignalColor">true</obj_property>
+            </wvobject>
+            <wvobject fp_name="/data_sample_tb/uut/i_ds.prescaler" type="array">
+               <obj_property name="ElementShortName">.prescaler[31:0]</obj_property>
+               <obj_property name="ObjectShortName">.prescaler[31:0]</obj_property>
+               <obj_property name="CustomSignalColor">#FFFF00</obj_property>
+               <obj_property name="UseCustomSignalColor">true</obj_property>
+            </wvobject>
+         </wvobject>
+      </wvobject>
+      <wvobject fp_name="group137" type="group">
+         <obj_property name="label">Data Sample Outputs</obj_property>
+         <obj_property name="DisplayName">label</obj_property>
+         <obj_property name="isExpanded"></obj_property>
+         <wvobject fp_name="/data_sample_tb/uut/o_ds" type="array">
+            <obj_property name="ElementShortName">o_ds</obj_property>
+            <obj_property name="ObjectShortName">o_ds</obj_property>
+            <obj_property name="isExpanded"></obj_property>
+            <wvobject fp_name="/data_sample_tb/uut/o_ds.valid" type="logic">
+               <obj_property name="ElementShortName">.valid</obj_property>
+               <obj_property name="ObjectShortName">.valid</obj_property>
+               <obj_property name="CustomSignalColor">#00FFFF</obj_property>
+               <obj_property name="UseCustomSignalColor">true</obj_property>
+            </wvobject>
+            <wvobject fp_name="/data_sample_tb/uut/o_ds.rxd" type="logic">
+               <obj_property name="ElementShortName">.rxd</obj_property>
+               <obj_property name="ObjectShortName">.rxd</obj_property>
+               <obj_property name="CustomSignalColor">#00FFFF</obj_property>
+               <obj_property name="UseCustomSignalColor">true</obj_property>
+            </wvobject>
+         </wvobject>
+      </wvobject>
+      <wvobject fp_name="group140" type="group">
+         <obj_property name="label">implementation signals</obj_property>
+         <obj_property name="DisplayName">label</obj_property>
+         <obj_property name="isExpanded"></obj_property>
+         <wvobject fp_name="/data_sample_tb/uut/s_reset" type="logic">
+            <obj_property name="ElementShortName">s_reset</obj_property>
+            <obj_property name="ObjectShortName">s_reset</obj_property>
+         </wvobject>
+         <wvobject fp_name="/data_sample_tb/uut/r_in" type="array">
+            <obj_property name="ElementShortName">r_in</obj_property>
+            <obj_property name="ObjectShortName">r_in</obj_property>
+         </wvobject>
+         <wvobject fp_name="/data_sample_tb/uut/c_in" type="array">
+            <obj_property name="ElementShortName">c_in</obj_property>
+            <obj_property name="ObjectShortName">c_in</obj_property>
+         </wvobject>
+         <wvobject fp_name="/data_sample_tb/uut/r_ctrl" type="array">
+            <obj_property name="ElementShortName">r_ctrl</obj_property>
+            <obj_property name="ObjectShortName">r_ctrl</obj_property>
+         </wvobject>
+         <wvobject fp_name="/data_sample_tb/uut/c_ctrl" type="array">
+            <obj_property name="ElementShortName">c_ctrl</obj_property>
+            <obj_property name="ObjectShortName">c_ctrl</obj_property>
+            <obj_property name="isExpanded"></obj_property>
+         </wvobject>
+         <wvobject fp_name="/data_sample_tb/uut/r_out" type="array">
+            <obj_property name="ElementShortName">r_out</obj_property>
+            <obj_property name="ObjectShortName">r_out</obj_property>
+            <obj_property name="isExpanded"></obj_property>
+         </wvobject>
+         <wvobject fp_name="/data_sample_tb/uut/c_out" type="array">
+            <obj_property name="ElementShortName">c_out</obj_property>
+            <obj_property name="ObjectShortName">c_out</obj_property>
+         </wvobject>
+         <wvobject fp_name="group156" type="group">
+            <obj_property name="label">BRG_module interfacess</obj_property>
+            <obj_property name="DisplayName">label</obj_property>
+            <obj_property name="isExpanded"></obj_property>
+            <wvobject fp_name="/data_sample_tb/uut/o_brg" type="array">
+               <obj_property name="ElementShortName">o_brg</obj_property>
+               <obj_property name="ObjectShortName">o_brg</obj_property>
+               <obj_property name="isExpanded"></obj_property>
+            </wvobject>
+            <wvobject fp_name="/data_sample_tb/uut/i_brg" type="array">
+               <obj_property name="ElementShortName">i_brg</obj_property>
+               <obj_property name="ObjectShortName">i_brg</obj_property>
+               <obj_property name="isExpanded"></obj_property>
+            </wvobject>
+         </wvobject>
+      </wvobject>
+   </wvobject>
+</wave_config>

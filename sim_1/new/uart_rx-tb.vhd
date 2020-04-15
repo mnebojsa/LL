@@ -29,6 +29,7 @@ library ieee;
     use ieee.std_logic_1164.all;
     use ieee.numeric_std.all;
 
+    use work.p_verification.all;
     use work.p_general.all;
     use work.p_uart.all;
 
@@ -92,11 +93,12 @@ end component;
   signal o_valid       : std_logic ;
 
   -- helper signals
-  signal s_data_to_send : std_logic_vector(0 to G_DATA_WIDTH +1); --start|byte_to_send|stop
-  signal s_byte_to_send : std_logic_vector(0 to G_DATA_WIDTH -1);
-  signal cnt            : integer := 0;
+  signal   cnt            : integer := 0;
+  signal   s_UART_msg     : std_logic_vector(0 to 9);
   -- constants
-  constant clock_period: time := 10 ns;
+  constant clock_period   : time     := 10 ns;
+  constant send_frames_num: positive := 5;
+  constant bit_length     : positive := 250; --in clk cycles
 
 begin
 
@@ -130,8 +132,8 @@ begin
         o_valid        => o_valid
     );
 
-
-clk_proc:
+  -- Clock process
+  clk_proc:
   process
   begin
       i_clk <= '0';
@@ -141,12 +143,12 @@ clk_proc:
   end process;
 
 
-  i_prescaler <= std_logic_vector(to_unsigned(125, 32));
+  i_prescaler <= std_logic_vector(to_unsigned(bit_length, 32));
 
-  s_data_to_send <= '0' & s_byte_to_send & '1';
-
+  -- Uart inputs
   stimulus: process
-      variable v_cnt : integer := 0;
+      variable v_cnt      : integer := 0;
+      variable v_UART_msg : std_logic_vector(0 to 9);
   begin
 
     -- Put initialisation code here
@@ -154,81 +156,38 @@ clk_proc:
       i_rst    <= '1';
       i_ena    <= '0';
       i_rxd    <= '1';
-          wait for clock_period * 50;
+          wait for clock_period *  50;
       i_rst    <= '0';
-          wait for clock_period * 50;
+          wait for clock_period * 750;
 
-      for i in 0 to 3 loop
-          wait for clock_period * to_integer(unsigned(i_prescaler));
-      end loop;
 
       i_ena    <= '1';
 
-                       --7 .... 0
-      s_byte_to_send <= "10101010";
-
-      for i in 0 to 3 loop
-          wait for clock_period * to_integer(unsigned(i_prescaler));
+      for i in 1 to send_frames_num loop
+          --GENERATE_UART FRAME
+          --|start |ID0|ID1|ID2|ID3|ID4|ID5|P0|P1|stop
+          v_UART_msg(0)      := '0';                                                  -- Start bit  - always '0'
+          v_UART_msg(1 to 8) :=  rand_slv(8,1,i);                                     -- Random PID value
+          v_UART_msg(9)      := '1';                                                  -- Stop bit   - always '1'
+	      
+          --testing purposes
+          s_UART_msg <= v_UART_msg;
+          -- send the message
+          p_send_data(v_UART_msg, bit_length, clock_period, i_rxd);
+	      
+          wait until o_valid = '1';
+              if G_LSB_MSB = LSB then
+                  assert o_rx_data = reverse_vector(v_UART_msg(1 to 8))
+                  report "unexpected value. o_rx_data = " & integer'image(to_integer(unsigned(o_rx_data)))
+                  severity ERROR;
+              else
+                  assert o_rx_data = v_UART_msg(1 to 8)
+                  report "unexpected value. o_rx_data = " & integer'image(to_integer(unsigned(o_rx_data)))
+                  severity ERROR;
+              end if;
       end loop;
 
-      for i in 0 to G_DATA_WIDTH + 1 loop
-          i_rxd <= s_data_to_send(v_cnt);        --start
-          wait for clock_period * to_integer(unsigned(i_prescaler));
-
-          cnt <= v_cnt;
-
-          if v_cnt <= G_DATA_WIDTH then
-              v_cnt := v_cnt +1;
-          else
-              v_cnt := 0;
-          end if;
-
-      end loop;
-          cnt <= v_cnt;
-    -- data 2
-                       --7 .... 0
-      s_byte_to_send <= "00110011";
-
-      for i in 0 to 3 loop
-          wait for clock_period * to_integer(unsigned(i_prescaler));
-      end loop;
-
-      for i in 0 to G_DATA_WIDTH + 1 loop
-          i_rxd <= s_data_to_send(v_cnt);        --start
-          wait for clock_period * to_integer(unsigned(i_prescaler));
-
-          cnt <= v_cnt;
-
-          if v_cnt <= G_DATA_WIDTH then
-              v_cnt := v_cnt +1;
-          else
-              v_cnt := 0;
-          end if;
-
-      end loop;
-          cnt <= v_cnt;
-    -- data 3
-                       --7 .... 0
-      s_byte_to_send <= "11001100";
-
-      for i in 0 to G_DATA_WIDTH + 1 loop
-          i_rxd <= s_data_to_send(v_cnt);        --start
-          wait for clock_period * to_integer(unsigned(i_prescaler));
-
-          cnt <= v_cnt;
-
-          if v_cnt <= G_DATA_WIDTH then
-              v_cnt := v_cnt +1;
-          else
-              v_cnt := 0;
-          end if;
-
-      end loop;
-
-      for i in 0 to 3 loop
-          wait for clock_period * to_integer(unsigned(i_prescaler));
-      end loop;
-
+          wait for clock_period * 250;
       i_ena <= '0';
 
     wait;

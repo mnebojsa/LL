@@ -1,7 +1,7 @@
-----------------------------------------------------------------------------
+---------------------------------------------------------------------------
 -- Company     : RT-RK
 -- Project     :
-----------------------------------------------------------------------------
+---------------------------------------------------------------------------
 -- File        : uart_rx.vhd
 -- Author(s)   : Nebojsa Markovic
 -- Created     : March 10th, 2020
@@ -11,53 +11,68 @@
 -- Design Unit : uart_rx.vhd
 -- Library     :
 ---------------------------------------------------------------------------
--------------------------------------------------------------------------------------------------------------
+---------------------------------------------------------------------------
 -- Description : Full UART_RX module
 --
 --
 --
-----------------------------------------------------------------------------------------------------------------
+---------------------------------------------------------------------------
 
---------------------------------------------------------------------------------------------
+---------------------------------------------------------------------------
 --                    UART_RX INSTANTIATION template
---------------------------------------------------------------------------------------------
-
---UART_RX_inst_num: uart_rx
---    generic map(
---        G_DATA_WIDTH       => 8,
---        G_RST_LEVEVEL      => HL,
---        G_LSB_MSB          => LSB,
---        G_USE_BREAK        => true,
---        G_USE_OVERRUN      => true,
---        G_USE_FRAMEIN      => true,
---        G_USE_PARITY_ODD   => true,
---        G_USE_PARITY_EVEN  => true
---    )
---    port map  (
---        i_clk           => i_clk,               -- Input CLOCK
---        i_rst           => s_rst,               -- Input Reset for clk
---        i_sample        => s_sample,            -- Input Sample signal - comes from BAUD RATE GENERATOR- signal to sample input
---        i_ena           => s_ena,               -- Input Uart Enable Signal
---        i_rxd           => s_rxd,               -- Input Reciveve Data bus Line
---        i_data_accepted => s_data_accepted,     -- Input Data Recieved througth UART are stored/used
---        o_brake         => s_uart_brake,        -- Break Detected
---        o_overrun_err   => s_overrun_err,       -- Output Error and Signaling
---        o_framein_err   => s_framein_err,       -- Output Error and Signaling
---        o_parity_err    => s_parity_err,        -- Output Error and Signaling
---        o_valid         => s_uart_valid,
---        o_rx_data       => s_uart_rx_data       -- Output Recieved Data
---    );
-
+---------------------------------------------------------------------------
+--
+-- UART_RX_inst_num:
+--   uart_rx_top
+--       generic map
+--       (
+--           G_DATA_WIDTH     => G_DATA_WIDTH,
+--           G_RST_LEVEVEL    => G_RST_LEVEVEL,
+--           G_SAMPLE_PER_BIT => G_SAMPLE_PER_BIT,
+--           G_LSB_MSB        => G_LSB_MSB,
+--           G_USE_BREAK      => G_USE_BREAK,
+--           G_USE_OVERRUN    => G_USE_OVERRUN,
+--           G_USE_FRAMEIN    => G_USE_FRAMEIN,
+--           G_USE_PARITY     => G_USE_PARITY
+--       )
+--       port map
+--       (
+--           i_clk          => i_clk,
+--           i_rst          => i_rst,
+--           i_ena          => i_ena,
+--           i_rxd          => i_rxd,
+--           i_prescaler    => i_prescaler,
+--           i_data_accepted=> i_data_accepted,
+--           o_break        => o_break,
+--           o_overrun_err  => o_overrun_err,
+--           o_framein_err  => o_framein_err,
+--           o_parity_err   => o_parity_err,
+--           o_rx_data      => o_rx_data,
+--           o_valid        => o_valid
+--       );
+---------------------------------------------------------------------------
 library ieee;
     use ieee.std_logic_1164.all;
     use ieee.numeric_std.all;
 
     use work.p_general.all;
 
+
 package p_uart is
+
+-------------------------------------------------------------------------------------
+--             Constants
+-------------------------------------------------------------------------------------
+
     constant G_DATA_WIDTH     : positive  := 8;      -- Default 8
 
-    -- Inputs registered
+-------------------------------------------------------------------------------------
+--             Data Types
+-------------------------------------------------------------------------------------
+ --------------
+ -- ** UART **
+ --------------
+    --! UART interface inputs
     type TYPE_UART_IN is record
         ena         : std_logic;             -- Input Uart Enable Signal
         prescaler   : std_logic_vector(31 downto 0); --
@@ -72,8 +87,10 @@ package p_uart is
         rxd          => '0',
         data_acc     => '0');
 
+    type TYPE_UART_IN_ARRAY is array (natural range <>) of TYPE_UART_IN;
 
-    -- Inputs registered
+
+    --! UART interface outputs
     type TYPE_UART_OUT is record
         break         : std_logic;           -- Break Detected
         overrun_err   : std_logic;           -- Output Error and Signaling
@@ -92,10 +109,82 @@ package p_uart is
         rx_data        => (others => '0'),
         valid          => '0');
 
-    --! Calculates parity
-    function f_parity(s_in   : std_logic_vector) return std_logic;
+    type TYPE_UART_OUT_ARRAY is array (natural range <>) of TYPE_UART_OUT;
 
-    --!UART_RX component
+ ---------------------
+ -- ** DATA_SAMPLE **
+ ---------------------
+
+    --! DATA SAMPLE interface inputs
+    type TYPE_IN_DS is record
+        sample      : std_logic;                      -- Input Sample signal - comes from BAUD RATE GENERATOR- signal to sample input
+        ena         : std_logic;                      -- Input Uart Enable Signal
+        rxd         : std_logic;                      -- Input Reciveve Data bus Line
+        prescaler   : std_logic_vector(31 downto 0);
+    end record;
+
+    -- Reset Values for TYPE_IN_DS type data
+    constant TYPE_IN_DS_RST : TYPE_IN_DS := (
+        sample       => '0',
+        ena          => '0',
+        rxd          => '0',
+        prescaler    => (others => '0'));
+
+    type TYPE_IN_DS_ARRAY is array (natural range <>) of TYPE_IN_DS;
+
+    --! DATA SAMPLE interface outputs
+    type TYPE_OUT_DS is record
+        valid        : std_logic; -- valid registered signal value (after sampling of the input)
+        rxd          : std_logic; -- sampled input bus value
+    end record;
+
+    -- Reset Values for TYPE_IN_DS type data
+    constant TYPE_OUT_DS_RST : TYPE_OUT_DS := (
+        valid        => '0',
+        rxd          => '0');
+
+    type TYPE_OUT_DS_ARRAY is array (natural range <>) of TYPE_OUT_DS;
+
+
+ ----------------------
+ -- ** BAUD RATE GEN **
+ ----------------------
+
+    --! BRG interface inputs
+    type TYPE_BRG_IN is record
+        sample     : std_logic;                    -- Sample from the Module's input
+        ena        : std_logic;                    -- Enable Module signal
+        prescaler  : std_logic_vector(31 downto 0);-- Duration of one bit (expresed in number of clk cycles per bit)
+    end record;
+
+    constant TYPE_BRG_IN_RST : TYPE_BRG_IN := (
+        sample     => '0',
+        ena        => '0',
+        prescaler  => (others => '0'));
+
+    type TYPE_BRG_IN_ARRAY is array (natural range <>) of TYPE_BRG_IN;
+
+
+    --! BRG interface outputs
+    type TYPE_BRG_OUT is record
+        brs          : std_logic;  -- baud rate sample
+    end record;
+
+    constant TYPE_BRG_OUT_RST : TYPE_BRG_OUT := (
+        brs          => '0');
+
+    type TYPE_BRG_OUT_ARRAY is array (natural range <>) of TYPE_BRG_OUT;
+
+-------------------------------------------------------------------------------------
+--             Component declaration
+-------------------------------------------------------------------------------------
+
+ --------------
+ -- ** UART **
+ --------------
+    -- UART_RX component
+    -- Captures UART message on the input
+    -- Signalig Data Valid and provides recived message as a vector
     component uart_rx is
         generic
          (
@@ -117,32 +206,13 @@ package p_uart is
         );
     end component;
 
-    -- Inputs registered
-    type TYPE_IN_DS is record
-        sample      : std_logic;                      -- Input Sample signal - comes from BAUD RATE GENERATOR- signal to sample input
-        ena         : std_logic;                      -- Input Uart Enable Signal
-        rxd         : std_logic;                      -- Input Reciveve Data bus Line
-        prescaler   : std_logic_vector(31 downto 0);
-    end record;
 
-    -- Reset Values for TYPE_IN_DS type data
-    constant TYPE_IN_DS_RST : TYPE_IN_DS := (
-        sample       => '0',
-        ena          => '0',
-        rxd          => '0',
-        prescaler    => (others => '0'));
-
-    -- Outputs registered
-    type TYPE_OUT_DS is record
-        valid        : std_logic; -- valid registered signal value (after sampling of the input)
-        rxd          : std_logic; -- sampled input bus value
-    end record;
-
-    -- Reset Values for TYPE_IN_DS type data
-    constant TYPE_OUT_DS_RST : TYPE_OUT_DS := (
-        valid        => '0',
-        rxd          => '0');
-
+ ---------------------
+ -- ** DATA_SAMPLE **
+ ---------------------
+    -- Data Sampler
+    -- Uses BRG samples to sample i_ds.rxd input
+    -- On the outputs gives rxd value after decideing and data valid signaling
     component data_sample
         generic(
             G_RST_LEVEVEL      : RST_LEVEL;       -- HL (High Level), LL(Low Level)
@@ -157,31 +227,18 @@ package p_uart is
             );
     end component;
 
-    -- Inputs registered
-    type TYPE_BRG_IN is record
-        sample     : std_logic;                    -- Sample from the Module's input
-        ena        : std_logic;                    -- Enable Module signal
-        prescaler  : std_logic_vector(31 downto 0);-- Duration of one bit (expresed in number of clk cycles per bit)
-    end record;
 
-    constant TYPE_BRG_IN_RST : TYPE_BRG_IN := (
-        sample     => '0',
-        ena        => '0',
-        prescaler  => (others => '0'));
-
-    type TYPE_BRG_OUT is record
-        brs          : std_logic;        -- baud rate sample
-    end record;
-
-    constant TYPE_BRG_OUT_RST : TYPE_BRG_OUT := (
-        brs          => '0');
-
+ ----------------------
+ -- ** BAUD RATE GEN **
+ ----------------------
+    -- Baud Rate GENERATOR
+    -- The component gives G_SAMPLE_PER_BIT samples in i_brg.prescaler clk cycles
     component BRG
         generic(
-            G_RST_LEVEVEL    : RST_LEVEL := HL;
-            G_SAMPLE_USED    : boolean   := false;
-            G_SAMPLE_PER_BIT : positive  := 13;           --
-            G_DATA_WIDTH     : positive  := 8
+            G_RST_LEVEVEL    : RST_LEVEL;
+            G_SAMPLE_USED    : boolean;
+            G_SAMPLE_PER_BIT : positive;
+            G_DATA_WIDTH     : positive
         );
         port
         (
@@ -192,19 +249,26 @@ package p_uart is
         );
     end component;
 
+-------------------------------------------------------------------------------------
+--             Function declaration
+-------------------------------------------------------------------------------------
+
+    -- If s_in has even number of 1's, the function returns '0'
+    -- If s_in has odd  number of 1's, the function returns '1'
+    function f_parity(s_in   : std_logic_vector) return std_logic;
+
 end package;
 
 package body p_uart is
 
+    --! Calculates parity
     function f_parity(s_in : std_logic_vector) return std_logic is
         variable ret : std_logic;
     begin
         ret := '0';
-
         for i in 0 to s_in'length -1 loop
             ret := ret xor s_in(i);
         end loop;
-
         return ret;
     end function;
 
